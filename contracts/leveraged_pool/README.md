@@ -1,7 +1,8 @@
-Leveraged Pools
----------------
+Leveraged Pool
+==============
 
-Zero-sum leveraged trading pools on Terra network.
+A pool providing leverage over a token. This contract is the main interface for
+both liquidity providers and speculators minting and burning leveraged assets.
 
 Build
 -----

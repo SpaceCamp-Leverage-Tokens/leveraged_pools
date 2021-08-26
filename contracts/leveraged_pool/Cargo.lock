@@ -320,7 +320,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "leveraged-pool"
+name = "leveraged_pool"
 version = "0.1.0"
 dependencies = [
  "cosmwasm-schema",

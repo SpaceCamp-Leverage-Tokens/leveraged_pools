@@ -1,5 +1,5 @@
 [package]
-name = "leveraged-pool"
+name = "leveraged_pool"
 version = "0.1.0"
 authors = ["Wesley Coakley <w@wesleycoakley.com>"]
 edition = "2018"
