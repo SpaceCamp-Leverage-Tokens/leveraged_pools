@@ -2,16 +2,16 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
-    to_binary
-};
+    to_binary };
 use cw0::{maybe_addr};
-
 use crate::error::ContractError;
 use crate::msg::{
-    ExecuteMsg, InstantiateMsg, QueryMsg, HyperParametersResponse
-};
+    ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse };
 use crate::state::{HYPERPARAMETERS, Hyperparameters};
 
+/**
+ * Instantiation entrypoint
+ */
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
@@ -19,11 +19,13 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    /* Validate that terraswap pair address is at least valid */
     let pair_contract = maybe_addr(
         deps.api,
         Some(msg.terraswap_pair_addr)
     )?.unwrap();
 
+    /* Validate that leveraged asset address is at least valid */
     let leveraged_asset_contract = maybe_addr(
         deps.api,
         Some(msg.leveraged_asset_addr)
@@ -47,6 +49,9 @@ pub fn instantiate(
        .add_attribute("method", "instantiate"))
 }
 
+/**
+ * Execution entrypoint
+ */
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     _deps: DepsMut,
@@ -54,16 +59,18 @@ pub fn execute(
     _info: MessageInfo,
     _msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
+    /* TODO */
     Err(ContractError::Unimplemented { })
 }
 
 /**
  * Expose immutable hyperparameters configured at init time
  */
-fn query_hyperparameters(deps: Deps) -> StdResult<HyperParametersResponse> {
+fn query_hyperparameters(deps: Deps) -> StdResult<HyperparametersResponse> {
     let hyper_p = HYPERPARAMETERS.load(deps.storage)?;
 
-    Ok(HyperParametersResponse {
+    /* This never fails */
+    Ok(HyperparametersResponse {
         leverage_amount:hyper_p.leverage_amount,
         minimum_protocol_ratio: hyper_p.minimum_protocol_ratio,
         rebalance_ratio: hyper_p.rebalance_ratio,
@@ -74,10 +81,13 @@ fn query_hyperparameters(deps: Deps) -> StdResult<HyperParametersResponse> {
     })
 }
 
+/**
+ * Query entrypoint
+ */
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
-        QueryMsg::HyperParameters { } => to_binary(&query_hyperparameters(deps)?),
+        QueryMsg::Hyperparameters { } => to_binary(&query_hyperparameters(deps)?),
     }
 }
 

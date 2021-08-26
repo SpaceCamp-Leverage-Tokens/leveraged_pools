@@ -19,11 +19,13 @@ fn proper_init() {
         leveraged_asset_addr: String::from("mTSLA"),
     };
 
+    /* Initialize */
     let info = mock_info("leveraged", &coins(1000, "big_ones"));
     let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
     assert_eq!(0, res.messages.len());
 
-    let msg = QueryMsg::HyperParameters { };
+    /* Query hyperparameters and validate they are as we set them to be */
+    let msg = QueryMsg::Hyperparameters { };
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
     let hyper_p: Hyperparameters = from_binary(&res).unwrap();
     assert_eq!(hyper_p.leverage_amount, 2_000_000);
