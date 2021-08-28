@@ -2,5 +2,10 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ExecuteMsg",
   "type": "string",
-  "enum": []
+  "enum": [
+    "provide_liquidity",
+    "withdraw_liquidity",
+    "mint_leveraged_asset",
+    "burn_leveraged_asset"
+  ]
 }
