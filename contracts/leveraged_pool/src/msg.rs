@@ -1,5 +1,6 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use crate::swap::{TSPricePoint};
 
 /**
  * Hyperparameter init
@@ -18,12 +19,17 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
+    ProvideLiquidity,
+    WithdrawLiquidity,
+    MintLeveragedAsset,
+    BurnLeveragedAsset,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    Hyperparameters {},
+    Hyperparameters,
+    PoolState,
 }
 
 /**
@@ -41,3 +47,15 @@ pub struct HyperparametersResponse {
     pub leveraged_asset_addr: String,
 }
 
+/**
+ * Operational data, changing as pool usage changes
+ */
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct PoolStateResponse {
+    pub opening_price: TSPricePoint,
+
+    pub assets_in_reserve: u32,
+    pub total_minted_value: u32,
+    pub total_asset_share: u32,
+    pub total_minted_share: u32,
+}

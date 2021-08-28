@@ -9,6 +9,12 @@ pub enum ContractError {
     #[error("Unimplemented")]
     Unimplemented {},
 
+    #[error("Unexpected oracle response")]
+    UnexpectedOracleResponse {},
+
+    #[error("Token has no liquidity")]
+    NoTokenLiquidity {},
+
     #[error("Unauthorized")]
     Unauthorized {},
 }
