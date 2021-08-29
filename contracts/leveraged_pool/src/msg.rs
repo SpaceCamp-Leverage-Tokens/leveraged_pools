@@ -53,7 +53,8 @@ pub struct HyperparametersResponse {
  */
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PoolStateResponse {
-    pub opening_price: TSPricePoint,
+    pub asset_opening_price: TSPricePoint,
+    pub leveraged_opening_price: TSPricePoint,
 
     pub assets_in_reserve: u32,
     pub total_leveraged_assets: u32,

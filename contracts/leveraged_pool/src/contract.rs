@@ -9,7 +9,7 @@ use crate::msg::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
     PoolStateResponse , AllPoolInfoResponse};
 use crate::state::{HYPERPARAMETERS, Hyperparameters, PoolState, POOLSTATE};
-use crate::swap::{TSLiason};
+use crate::swap::{TSLiason, TSPricePoint};
 
 /**
  * Instantiation entrypoint
@@ -51,10 +51,17 @@ pub fn instantiate(
     );
 
     let opening_price = l.fetch_ts_price(&env, deps.as_ref())?;
-
+   
+    let leveraged_opening_price = TSPricePoint{
+        u_price: opening_price.u_price,
+        timestamp: opening_price.timestamp,
+    };
     /* Initialize pool state */
+    // Initializes leveraged price to equal the leveraged price
+
     let init_state = PoolState {
-        opening_price,
+        asset_opening_price: opening_price,
+        leveraged_opening_price: leveraged_opening_price,
         assets_in_reserve: 0,
         total_leveraged_assets: 0,
         total_asset_pool_share: 0,
@@ -108,7 +115,8 @@ fn query_hyperparameters(deps: Deps) -> StdResult<HyperparametersResponse> {
 fn query_pool_info(deps: Deps) -> StdResult<PoolStateResponse> {
     let pool_state = POOLSTATE.load(deps.storage)?;
     Ok(PoolStateResponse{
-        opening_price: pool_state.opening_price,
+        asset_opening_price: pool_state.asset_opening_price,
+        leveraged_opening_price: pool_state.leveraged_opening_price,
         assets_in_reserve: pool_state.assets_in_reserve,
         total_leveraged_assets: pool_state.total_leveraged_assets,
         total_asset_pool_share: pool_state.total_asset_pool_share,
@@ -122,7 +130,8 @@ fn query_pool_info(deps: Deps) -> StdResult<PoolStateResponse> {
 fn query_all_pool_info(deps: Deps) -> StdResult<AllPoolInfoResponse> {
     let pool_state = POOLSTATE.load(deps.storage)?;
     let pool_response = PoolStateResponse{
-        opening_price: pool_state.opening_price,
+        asset_opening_price: pool_state.asset_opening_price,
+        leveraged_opening_price: pool_state.leveraged_opening_price,
         assets_in_reserve: pool_state.assets_in_reserve,
         total_leveraged_assets: pool_state.total_leveraged_assets,
         total_asset_pool_share: pool_state.total_asset_pool_share,
