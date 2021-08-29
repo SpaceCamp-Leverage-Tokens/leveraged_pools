@@ -60,6 +60,6 @@ fn proper_init() {
     assert_eq!(pool_state.assets_in_reserve, 0);
 
     /* Assert that inital price was correctly queried from mocked TerraSwap */
-    assert_eq!(pool_state.opening_price.timestamp > 0, true);
-    assert_eq!(pool_state.opening_price.u_price.u128() / 1_000_000, 1_000);
+    assert_eq!(pool_state.asset_opening_price.timestamp > 0, true);
+    assert_eq!(pool_state.asset_opening_price.u_price.u128() / 1_000_000, 1_000);
 }
