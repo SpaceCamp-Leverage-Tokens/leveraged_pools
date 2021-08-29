@@ -30,6 +30,7 @@ pub enum ExecuteMsg {
 pub enum QueryMsg {
     Hyperparameters { },
     PoolState { },
+    AllPoolInfo { },
 }
 
 /**
@@ -58,4 +59,13 @@ pub struct PoolStateResponse {
     pub total_minted_value: u32,
     pub total_asset_share: u32,
     pub total_minted_share: u32,
+}
+
+/**
+ * One query to minimze entrances to blockchain
+ */
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct AllPoolInfoResponse {
+    pub hyperparameters: HyperparametersResponse,
+    pub pool_state: PoolStateResponse,
 }

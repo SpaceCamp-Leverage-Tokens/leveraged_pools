@@ -25,6 +25,18 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "all_pool_info"
+      ],
+      "properties": {
+        "all_pool_info": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }
