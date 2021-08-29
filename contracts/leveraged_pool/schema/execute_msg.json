@@ -1,11 +1,54 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ExecuteMsg",
-  "type": "string",
-  "enum": [
-    "provide_liquidity",
-    "withdraw_liquidity",
-    "mint_leveraged_asset",
-    "burn_leveraged_asset"
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "provide_liquidity"
+      ],
+      "properties": {
+        "provide_liquidity": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "withdraw_liquidity"
+      ],
+      "properties": {
+        "withdraw_liquidity": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "mint_leveraged_asset"
+      ],
+      "properties": {
+        "mint_leveraged_asset": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "burn_leveraged_asset"
+      ],
+      "properties": {
+        "burn_leveraged_asset": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    }
   ]
 }

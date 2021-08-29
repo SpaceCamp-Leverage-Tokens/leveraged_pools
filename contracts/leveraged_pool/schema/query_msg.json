@@ -1,9 +1,30 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "QueryMsg",
-  "type": "string",
-  "enum": [
-    "hyperparameters",
-    "pool_state"
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "hyperparameters"
+      ],
+      "properties": {
+        "hyperparameters": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "pool_state"
+      ],
+      "properties": {
+        "pool_state": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    }
   ]
 }
