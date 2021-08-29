@@ -1,1 +1,1 @@
-706407952142f339e15fc31a7e4cc36ed8f8f7e822f0943bf92fdf2d991541db  leveraged_pool.wasm
+62aafe699cdd8ae33ee753bd6af9e74f2b89fe3246607d4cc5e74a402ad26877  leveraged_pool.wasm

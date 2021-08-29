@@ -3,7 +3,7 @@ use std::fs::create_dir_all;
 
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
-use leveraged_pool::msg::{HyperparametersResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
+use leveraged_pool::msg::{ExecuteMsg, HyperparametersResponse, InstantiateMsg, QueryMsg};
 use leveraged_pool::state::Hyperparameters;
 
 fn main() {

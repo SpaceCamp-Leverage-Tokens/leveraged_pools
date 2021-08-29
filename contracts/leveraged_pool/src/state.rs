@@ -1,9 +1,9 @@
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use crate::swap::{TSPricePoint};
-use cosmwasm_std::{Addr};
 
+use cosmwasm_std::{Addr};
 use cw_storage_plus::Item;
+use crate::swap::{TSPricePoint};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Hyperparameters {

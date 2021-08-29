@@ -20,14 +20,24 @@ pub struct TSPricePoint {
 /**
  * TerraSwap liason for querying and eventually swapping
  */
-pub mod ts_liason {
-    use super::*;
+pub struct TSLiason {
+    pool: Addr,
+    leveraged_asset: Addr,
+}
+
+impl TSLiason {
+    pub fn new_from_pair(n_pool: &Addr, n_asset: &Addr) -> Self {
+        TSLiason {
+            pool: Addr::unchecked(n_pool.as_str()),
+            leveraged_asset: Addr::unchecked(n_asset.as_str()),
+        }
+    }
 
     /* Query given a single TS pool for current price */
-    pub fn fetch_ts_price(env: &Env, deps: Deps, pool: &Addr, asset: &Addr) -> Result<TSPricePoint, ContractError> {
+    pub fn fetch_ts_price(&self, env: &Env, deps: Deps) -> Result<TSPricePoint, ContractError> {
         /* Query TS contract */
         let res: TerraSwapPoolResponse = deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: pool.into(),
+            contract_addr: (*self.pool.as_str()).to_string(),
             msg: to_binary(&TerraSwapPairQueryMsg::Pool { })?,
         }))?;
 
@@ -42,13 +52,13 @@ pub mod ts_liason {
         for a in res.assets {
             match a.info {
                 AssetInfo::Token { contract_addr } =>
-                    if contract_addr == asset.as_str() {
+                    if contract_addr == self.leveraged_asset.as_str() {
                         asset_amt = a.amount.u128();
                     } else {
                         capital_amt = a.amount.u128();
                     }
                 AssetInfo::NativeToken { denom } =>
-                    if denom == asset.as_str() {
+                    if denom == self.leveraged_asset.as_str() {
                         asset_amt = a.amount.u128();
                     } else {
                         capital_amt = a.amount.u128();

@@ -9,7 +9,7 @@ use crate::msg::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
     PoolStateResponse };
 use crate::state::{HYPERPARAMETERS, Hyperparameters, PoolState, POOLSTATE};
-use crate::swap::{ts_liason};
+use crate::swap::{TSLiason};
 
 /**
  * Instantiation entrypoint
@@ -45,10 +45,12 @@ pub fn instantiate(
     };
 
     /* Fetch current TS price */
-    let opening_price = ts_liason::fetch_ts_price(&env, deps.as_ref(),
+    let l: TSLiason = TSLiason::new_from_pair(
         &hyper_p.terraswap_pair_addr,
         &hyper_p.leveraged_asset_addr
-    )?;
+    );
+
+    let opening_price = l.fetch_ts_price(&env, deps.as_ref())?;
 
     /* Initialize pool state */
     let init_state = PoolState {
