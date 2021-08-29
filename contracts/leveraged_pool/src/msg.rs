@@ -56,9 +56,9 @@ pub struct PoolStateResponse {
     pub opening_price: TSPricePoint,
 
     pub assets_in_reserve: u32,
-    pub total_minted_value: u32,
-    pub total_asset_share: u32,
-    pub total_minted_share: u32,
+    pub total_leveraged_assets: u32,
+    pub total_asset_pool_share: u32,
+    pub total_leveraged_pool_share: u32,
 }
 
 /**

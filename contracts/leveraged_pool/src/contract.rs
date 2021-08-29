@@ -56,9 +56,9 @@ pub fn instantiate(
     let init_state = PoolState {
         opening_price,
         assets_in_reserve: 0,
-        total_minted_value: 0,
-        total_asset_share: 0,
-        total_minted_share: 0,
+        total_leveraged_assets: 0,
+        total_asset_pool_share: 0,
+        total_leveraged_pool_share: 0,
     };
 
     /* Save for our reference across contract lifetime */
@@ -110,9 +110,9 @@ fn query_pool_info(deps: Deps) -> StdResult<PoolStateResponse> {
     Ok(PoolStateResponse{
         opening_price: pool_state.opening_price,
         assets_in_reserve: pool_state.assets_in_reserve,
-        total_minted_value: pool_state.total_minted_value,
-        total_asset_share: pool_state.total_asset_share,
-        total_minted_share: pool_state.total_minted_share,
+        total_leveraged_assets: pool_state.total_leveraged_assets,
+        total_asset_pool_share: pool_state.total_asset_pool_share,
+        total_leveraged_pool_share: pool_state.total_leveraged_pool_share,
     })
 }
 
@@ -124,9 +124,9 @@ fn query_all_pool_info(deps: Deps) -> StdResult<AllPoolInfoResponse> {
     let pool_response = PoolStateResponse{
         opening_price: pool_state.opening_price,
         assets_in_reserve: pool_state.assets_in_reserve,
-        total_minted_value: pool_state.total_minted_value,
-        total_asset_share: pool_state.total_asset_share,
-        total_minted_share: pool_state.total_minted_share,
+        total_leveraged_assets: pool_state.total_leveraged_assets,
+        total_asset_pool_share: pool_state.total_asset_pool_share,
+        total_leveraged_pool_share: pool_state.total_leveraged_pool_share,
     };
 
     let hyper_p = HYPERPARAMETERS.load(deps.storage)?;

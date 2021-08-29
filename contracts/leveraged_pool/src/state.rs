@@ -21,20 +21,20 @@ pub struct PoolState {
     pub opening_price: TSPricePoint,
 
     pub assets_in_reserve: u32,
-    pub total_minted_value: u32,
-    pub total_asset_share: u32,
-    pub total_minted_share: u32,
+    pub total_leveraged_assets: u32,
+    pub total_asset_pool_share: u32,
+    pub total_leveraged_pool_share: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MinterPosition {
-    pub asset_partial_share: u32,
-    pub minted_partial_share: u32,
+    pub asset_pool_partial_share: u32,
+    pub leveraged_pool_partial_share: u32,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ProviderPosition {
-    pub asset_partial_share: u32,
+    pub asset_pool_partial_share: u32,
 }
 
 /**
