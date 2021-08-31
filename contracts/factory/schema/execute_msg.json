@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "ExecuteMsg",
+  "anyOf": [
+    {
+      "type": "object",
+      "required": [
+        "create_new_pool"
+      ],
+      "properties": {
+        "create_new_pool": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    }
+  ]
+}
