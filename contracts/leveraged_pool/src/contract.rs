@@ -5,11 +5,11 @@ use cosmwasm_std::{
     to_binary };
 use cw0::{maybe_addr};
 use crate::error::ContractError;
-use crate::msg::{
+use leveraged_pools::pool::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
-    PoolStateResponse , AllPoolInfoResponse};
+    PoolStateResponse , AllPoolInfoResponse, TSPricePoint};
 use crate::state::{HYPERPARAMETERS, Hyperparameters, PoolState, POOLSTATE};
-use crate::swap::{TSLiason, TSPricePoint};
+use crate::swap::{TSLiason};
 
 /**
  * Instantiation entrypoint

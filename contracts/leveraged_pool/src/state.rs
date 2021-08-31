@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use cosmwasm_std::{Addr};
 use cw_storage_plus::Item;
-use crate::swap::{TSPricePoint};
+use leveraged_pools::pool::{TSPricePoint};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct Hyperparameters {

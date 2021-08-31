@@ -1,6 +1,6 @@
 use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::{coins, from_binary, Addr, Uint128};
-use crate::msg::{InstantiateMsg, QueryMsg};
+use leveraged_pools::pool::{InstantiateMsg, QueryMsg};
 use crate::state::{Hyperparameters, PoolState};
 use crate::contract::{instantiate, query};
 use crate::testing::mock_querier::{mock_dependencies};

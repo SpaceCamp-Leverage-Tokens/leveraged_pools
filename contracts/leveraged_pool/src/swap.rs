@@ -1,5 +1,3 @@
-use schemars::JsonSchema;
-use serde::{Deserialize, Serialize};
 use crate::error::ContractError;
 use cosmwasm_std::{ Env, Deps, Addr, to_binary, QueryRequest, WasmQuery };
 use cosmwasm_std::{Uint128};
@@ -7,15 +5,7 @@ use terraswap::pair::{
     QueryMsg as TerraSwapPairQueryMsg,
     PoolResponse as TerraSwapPoolResponse };
 use terraswap::asset::{AssetInfo};
-
-/**
- * Timestamp in seconds since 1970-01-01T00:00:00Z
- */
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct TSPricePoint {
-    pub u_price: Uint128,
-    pub timestamp: u64,
-}
+use leveraged_pools::pool::{TSPricePoint};
 
 /**
  * TerraSwap liason for querying and eventually swapping
