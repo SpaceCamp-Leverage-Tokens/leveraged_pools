@@ -1,2 +1,0 @@
-01928833edd9d9ca6df8ece9721aaa8bb65dde484bf06b4421506793940ac84f  leveraged_pool.wasm
-01928833edd9d9ca6df8ece9721aaa8bb65dde484bf06b4421506793940ac84f  leveraged_pool_all_query.wasm
