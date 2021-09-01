@@ -1,7 +1,7 @@
 use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::{coins, from_binary, Addr, Uint128};
-use leveraged_pools::pool::{InstantiateMsg, QueryMsg};
-use crate::state::{Hyperparameters, PoolState};
+use leveraged_pools::pool::{InstantiateMsg, QueryMsg, HyperparametersResponse, AssetPriceHistoryResponse};
+use crate::state::{PoolState};
 use crate::contract::{instantiate, query};
 use crate::testing::mock_querier::{mock_dependencies};
 
@@ -44,7 +44,7 @@ fn proper_init() {
     /* Query hyperparameters and validate they are as we set them to be */
     let msg = QueryMsg::Hyperparameters { };
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let hyper_p: Hyperparameters = from_binary(&res).unwrap();
+    let hyper_p: HyperparametersResponse = from_binary(&res).unwrap();
     assert_eq!(hyper_p.leverage_amount, 2_000_000);
     assert_eq!(hyper_p.minimum_protocol_ratio, 2_000_000);
     assert_eq!(hyper_p.rebalance_ratio, 2_500_000);
@@ -62,4 +62,11 @@ fn proper_init() {
     /* Assert that inital price was correctly queried from mocked TerraSwap */
     assert_eq!(pool_state.asset_opening_price.timestamp > 0, true);
     assert_eq!(pool_state.asset_opening_price.u_price.u128() / 1_000_000, 1_000);
+
+    /* Query asset price history */
+    let msg = QueryMsg::AssetPriceHistory { };
+    let res = query(deps.as_ref(), mock_env(), msg).unwrap();
+    let u_price_history: AssetPriceHistoryResponse = from_binary(&res).unwrap();
+    let price_history = u_price_history.price_history;
+    assert_eq!(price_history.len(), 1);
 }

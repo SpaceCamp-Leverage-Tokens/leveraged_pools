@@ -4,7 +4,8 @@ use std::fs::create_dir_all;
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
 
 use leveraged_pools::pool::{ExecuteMsg,HyperparametersResponse,
-    InstantiateMsg, QueryMsg, TSPricePoint};
+    InstantiateMsg, QueryMsg, TSPricePoint, LeveragedPricePoint,
+    AssetPriceHistoryResponse};
 use leveraged_pool::state::Hyperparameters;
 
 fn main() {
@@ -18,5 +19,7 @@ fn main() {
     export_schema(&schema_for!(QueryMsg), &out_dir);
     export_schema(&schema_for!(Hyperparameters), &out_dir);
     export_schema(&schema_for!(TSPricePoint), &out_dir);
+    export_schema(&schema_for!(LeveragedPricePoint), &out_dir);
+    export_schema(&schema_for!(AssetPriceHistoryResponse), &out_dir);
     export_schema(&schema_for!(HyperparametersResponse), &out_dir);
 }

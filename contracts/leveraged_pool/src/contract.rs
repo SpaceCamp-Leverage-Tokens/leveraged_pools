@@ -7,7 +7,8 @@ use cw0::{maybe_addr};
 use crate::error::ContractError;
 use leveraged_pools::pool::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
-    PoolStateResponse , AllPoolInfoResponse, TSPricePoint};
+    PoolStateResponse , AllPoolInfoResponse, TSPricePoint,
+    AssetPriceHistoryResponse };
 use crate::state::{HYPERPARAMETERS, Hyperparameters, PoolState, POOLSTATE};
 use crate::swap::{TSLiason};
 
@@ -45,17 +46,18 @@ pub fn instantiate(
     };
 
     /* Fetch current TS price */
-    let l: TSLiason = TSLiason::new_from_pair(
+    let liason: TSLiason = TSLiason::new_from_pair(
         &hyper_p.terraswap_pair_addr,
         &hyper_p.leveraged_asset_addr
     );
 
-    let opening_price = l.fetch_ts_price(&env, deps.as_ref())?;
-   
+    let opening_price = liason.fetch_ts_price(&env, deps.querier, deps.storage)?;
+
     let leveraged_opening_price = TSPricePoint{
         u_price: opening_price.u_price,
         timestamp: opening_price.timestamp,
     };
+
     /* Initialize pool state */
     // Initializes leveraged price to equal the leveraged price
 
@@ -106,6 +108,22 @@ fn query_hyperparameters(deps: Deps) -> StdResult<HyperparametersResponse> {
         rebalance_premium: hyper_p.rebalance_premium,
         terraswap_pair_addr: hyper_p.terraswap_pair_addr.into(),
         leveraged_asset_addr: hyper_p.leveraged_asset_addr.into(),
+    })
+}
+
+/**
+ * QueryMsg::AssetPriceHistory
+ */
+fn query_asset_price_history(deps: Deps) -> StdResult<AssetPriceHistoryResponse> {
+    let hyper_p = HYPERPARAMETERS.load(deps.storage)?;
+
+    let liason: TSLiason = TSLiason::new_from_pair(
+        &hyper_p.terraswap_pair_addr,
+        &hyper_p.leveraged_asset_addr
+    );
+
+    Ok(AssetPriceHistoryResponse {
+        price_history: liason.asset_price_history(deps.storage),
     })
 }
 
@@ -164,6 +182,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::Hyperparameters { } => to_binary(&query_hyperparameters(deps)?),
         QueryMsg::PoolState { } => to_binary(&query_pool_info(deps)?),
         QueryMsg::AllPoolInfo { } => to_binary(&query_all_pool_info(deps)?),
+        QueryMsg::AssetPriceHistory { } => to_binary(&query_asset_price_history(deps)?),
     }
 }
 

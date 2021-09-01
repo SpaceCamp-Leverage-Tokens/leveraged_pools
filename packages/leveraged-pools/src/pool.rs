@@ -1,3 +1,4 @@
+use std::vec::{Vec};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Uint128};
@@ -5,9 +6,16 @@ use cosmwasm_std::{Uint128};
 /**
  * Timestamp in seconds since 1970-01-01T00:00:00Z
  */
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, JsonSchema)]
 pub struct TSPricePoint {
     pub u_price: Uint128,
+    pub timestamp: u64,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct LeveragedPricePoint {
+    pub asset_price: Uint128,
+    pub leveraged_price: Uint128,
     pub timestamp: u64,
 }
 
@@ -40,6 +48,12 @@ pub enum QueryMsg {
     Hyperparameters { },
     PoolState { },
     AllPoolInfo { },
+    AssetPriceHistory { },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct AssetPriceHistoryResponse {
+    pub price_history: Vec<TSPricePoint>,
 }
 
 /**
