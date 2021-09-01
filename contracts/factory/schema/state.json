@@ -4,6 +4,7 @@
   "type": "object",
   "required": [
     "leveraged_pool_addrs",
+    "leveraged_pool_code_id",
     "owner"
   ],
   "properties": {
@@ -12,6 +13,11 @@
       "items": {
         "$ref": "#/definitions/Addr"
       }
+    },
+    "leveraged_pool_code_id": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
     },
     "owner": {
       "$ref": "#/definitions/Addr"

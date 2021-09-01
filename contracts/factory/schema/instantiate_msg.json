@@ -1,5 +1,15 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "InstantiateMsg",
-  "type": "object"
+  "type": "object",
+  "required": [
+    "leveraged_pool_code_id"
+  ],
+  "properties": {
+    "leveraged_pool_code_id": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
+    }
+  }
 }

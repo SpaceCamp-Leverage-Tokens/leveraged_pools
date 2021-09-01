@@ -9,10 +9,66 @@
       ],
       "properties": {
         "create_new_pool": {
-          "type": "object"
+          "type": "object",
+          "required": [
+            "pool_instantiate_msg"
+          ],
+          "properties": {
+            "pool_instantiate_msg": {
+              "$ref": "#/definitions/InstantiateMsg"
+            }
+          }
         }
       },
       "additionalProperties": false
     }
-  ]
+  ],
+  "definitions": {
+    "InstantiateMsg": {
+      "description": "Hyperparameter init",
+      "type": "object",
+      "required": [
+        "leverage_amount",
+        "leveraged_asset_addr",
+        "minimum_protocol_ratio",
+        "mint_premium",
+        "rebalance_premium",
+        "rebalance_ratio",
+        "terraswap_pair_addr"
+      ],
+      "properties": {
+        "leverage_amount": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "leveraged_asset_addr": {
+          "type": "string"
+        },
+        "minimum_protocol_ratio": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "mint_premium": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "rebalance_premium": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "rebalance_ratio": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "terraswap_pair_addr": {
+          "type": "string"
+        }
+      }
+    }
+  }
 }

@@ -1,21 +1,26 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
-use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult};
+use cosmwasm_std::{to_binary, Binary, Deps, DepsMut, Env, MessageInfo, 
+    Response, StdResult, WasmMsg, SubMsg, Reply, ReplyOn, StdError, Addr};
 
 use crate::error::ContractError;
 use crate::msg::{PoolResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{State, STATE};
+use crate::response::{MsgInstantiateContractResponse};
+use leveraged_pools::pool::{InstantiateMsg as PoolInstantiatMsg};
+use protobuf::Message;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
     _env: Env,
     info: MessageInfo,
-    _msg: InstantiateMsg,
+    msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
     let state = State {
         owner: info.sender.clone(),
         leveraged_pool_addrs: vec![],
+        leveraged_pool_code_id: msg.leveraged_pool_code_id,
     };
     STATE.save(deps.storage, &state)?;
 
@@ -32,23 +37,57 @@ pub fn instantiate(
 pub fn execute(
     deps: DepsMut,
     _env: Env,
-    info: MessageInfo,
+    _info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::CreateNewPool { } => try_create_new_pool(deps, info),
+        ExecuteMsg::CreateNewPool { pool_instantiate_msg } => try_create_new_pool(deps, pool_instantiate_msg),
     }
 }
-pub fn try_create_new_pool(deps: DepsMut, info: MessageInfo) -> Result<Response, ContractError> {
+pub fn try_create_new_pool(deps: DepsMut, pool_instantiate_msg:PoolInstantiatMsg) -> Result<Response, ContractError> {
 
     // TODO: Create new pool and pass contract id to leveraged_pool_addrs
+    let state = STATE.load(deps.storage)?;
 
-    STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
-        state.leveraged_pool_addrs.push(info.sender);
-        Ok(state)
-    })?;
+    Ok(Response::new().add_submessage(SubMsg {
+        // create asset token
+        msg: WasmMsg::Instantiate {
+            admin: None,
+            code_id: state.leveraged_pool_code_id,
+            funds: vec![],
+            label: "".to_string(),
+            msg: to_binary(&pool_instantiate_msg)?,
+        }
+        .into(),
+        gas_limit: None,
+        id: 1,
+        reply_on: ReplyOn::Success,
+    }))
+}
 
-    Ok(Response::new().add_attribute("method", "try_create_new_pool"))
+/// This just stores the result for future query
+#[cfg_attr(not(feature = "library"), entry_point)]
+pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
+    match msg.id {
+        1=> {
+            let state = STATE.load(deps.storage)?;
+
+            let res:MsgInstantiateContractResponse = Message::parse_from_bytes(
+                msg.result.unwrap().data.unwrap().as_slice(),
+            )
+            .map_err(|_| {
+                StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
+            })?;
+            let pool_addr = Addr::unchecked(res.get_contract_address());
+
+            STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
+                state.leveraged_pool_addrs.push(pool_addr);
+                Ok(state)
+            });
+            Ok(Response::new())
+        }
+        _ => Err(StdError::generic_err("reply id is invalid"))
+    }    
 }
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -74,7 +113,7 @@ mod tests {
     fn proper_initialization() {
         let mut deps = mock_dependencies(&[]);
 
-        let msg = InstantiateMsg { };
+        let msg = InstantiateMsg { leveraged_pool_code_id: 10};
         let info = mock_info("creator", &coins(1000, "earth"));
 
         // we can just call .unwrap() to assert this was a success
@@ -88,23 +127,37 @@ mod tests {
         assert_eq!(empty_pool_list, value.pool_ids);
     }
 
-    #[test]
-    fn proper_new_pool() {
-        let mut deps = mock_dependencies(&coins(2, "token"));
+    // #[test]
+    // fn proper_new_pool() {
+    //     let mut deps = mock_dependencies(&coins(2, "token"));
 
-        let msg = InstantiateMsg { };
-        let info = mock_info("creator", &coins(2, "token"));
-        let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    //     let msg = InstantiateMsg { leveraged_pool_code_id: 10 };
+    //     let info = mock_info("creator", &coins(2, "token"));
+    //     let _res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
 
-        // beneficiary can release it
-        let info = mock_info("anyone", &coins(2, "token"));
-        let msg = ExecuteMsg::CreateNewPool {};
-        let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+    //     // beneficiary can release it
+    //     let info = mock_info("anyone", &coins(2, "token"));
 
-        // should increase counter by 1
-        let info = mock_info("anyone", &coins(2, "token"));
-        let res = query(deps.as_ref(), mock_env(), QueryMsg::GetPools {}).unwrap();
-        let value: PoolResponse = from_binary(&res).unwrap(); 
-        assert_eq!(vec![info.sender], value.pool_ids);
-    }
+    //     let mock_lev_pool_msg = PoolInstantiatMsg {
+    //         leverage_amount: 2_000_000,
+    //         minimum_protocol_ratio: 2_000_000,
+    //         rebalance_ratio: 2_500_000,
+    //         mint_premium: 0_500_000,
+    //         rebalance_premium: 10_000_000,
+    //         /* Previous terraswap pool */
+    //         terraswap_pair_addr: String::from("mTSLA-UST"),
+    //         /* Contract of the asset that is being leveraged */
+    //         leveraged_asset_addr: String::from("mTSLA"),
+    //     };
+
+    //     let msg = ExecuteMsg::CreateNewPool { pool_instantiate_msg:{ mock_lev_pool_msg} };
+    //     let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
+
+    //     // should increase counter by 1
+    //     // let info = mock_info("anyone", &coins(2, "token"));
+    //     let res = query(deps.as_ref(), mock_env(), QueryMsg::GetPools {}).unwrap();
+    //     let value: PoolResponse = from_binary(&res).unwrap(); 
+    //     let empty_pool_list:Vec<Addr> = Vec::new();
+    //     assert_eq!(empty_pool_list, value.pool_ids);
+    // }
 }

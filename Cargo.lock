@@ -281,6 +281,7 @@ dependencies = [
  "cosmwasm-storage",
  "cw-storage-plus",
  "leveraged-pools",
+ "protobuf",
  "schemars",
  "serde",
  "thiserror",
@@ -434,6 +435,12 @@ checksum = "b9f5105d4fdaab20335ca9565e106a5d9b82b6219b5ba735731124ac6711d23d"
 dependencies = [
  "unicode-xid",
 ]
+
+[[package]]
+name = "protobuf"
+version = "2.25.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "23129d50f2c9355ced935fce8a08bd706ee2e7ce2b3b33bf61dace0e379ac63a"
 
 [[package]]
 name = "quote"
