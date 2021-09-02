@@ -9,6 +9,7 @@ pub struct State {
     pub owner: Addr,
     pub leveraged_pool_addrs: Vec<Addr>,
     pub leveraged_pool_code_id: u64,
+    pub timestamp: u64,
 }
 
 pub const STATE: Item<State> = Item::new("state");
