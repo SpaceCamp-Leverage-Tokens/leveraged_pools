@@ -20,4 +20,7 @@ pub enum ContractError {
 
     #[error("Unauthorized")]
     Unauthorized {},
+
+    #[error("Invalid Leveraged Pool Params")]
+    InvalidPoolParams {},
 }

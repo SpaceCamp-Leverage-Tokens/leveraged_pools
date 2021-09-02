@@ -57,6 +57,10 @@ pub fn init<'a>(
         leveraged_asset_addr,
     };
 
+    if hyperparameters_is_valid(&hyper_p){
+        return Err(ContractError::InvalidPoolParams {})
+    }
+
     /* TODO I don't really care about TSPricePoint.timestamp, refactor maybe */
     let opening_price = liason.fetch_ts_price(&env, querier)?;
     let genesis_snapshot = PriceSnapshot {
@@ -99,6 +103,23 @@ pub fn query_pool_state(deps: &Deps) -> StdResult<PoolState> {
 fn price_history(storage: &dyn Storage) -> Vec<PriceSnapshot> {
     PRICE_DATA.load(storage).unwrap_or(Vec::new())
 }
+
+/**
+ * Checks for valid hyperparameters
+ */
+fn hyperparameters_is_valid(hyperparms:&Hyperparameters) -> bool {
+    if hyperparms.minimum_protocol_ratio > hyperparms.rebalance_premium{
+        return false
+    }
+    if hyperparms.mint_premium > 1_000_000{
+        return false
+    }
+    if hyperparms.rebalance_premium > 0_100_000{
+        return false
+    }
+    return true
+}
+
 
 /*
  * Snapshot of the price right at this exact second
