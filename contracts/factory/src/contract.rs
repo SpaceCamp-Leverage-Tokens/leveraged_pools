@@ -70,8 +70,6 @@ pub fn try_create_new_pool(deps: DepsMut, pool_instantiate_msg:PoolInstantiatMsg
 pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
     match msg.id {
         1=> {
-            let state = STATE.load(deps.storage)?;
-
             let res:MsgInstantiateContractResponse = Message::parse_from_bytes(
                 msg.result.unwrap().data.unwrap().as_slice(),
             )

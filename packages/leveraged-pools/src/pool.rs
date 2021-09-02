@@ -12,10 +12,16 @@ pub struct TSPricePoint {
     pub timestamp: u64,
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct LeveragedPricePoint {
+/* Snapshot of leveraged vs unleveraged price at a given time */
+#[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, JsonSchema)]
+pub struct PriceSnapshot {
+    /* Price of the unleveraged asset */
     pub asset_price: Uint128,
+
+    /* Derived price of leveraged asset */
     pub leveraged_price: Uint128,
+
+    /* Time of this snapshot in seconds since 1970-01-01T00:00:00Z */
     pub timestamp: u64,
 }
 
@@ -48,12 +54,12 @@ pub enum QueryMsg {
     Hyperparameters { },
     PoolState { },
     AllPoolInfo { },
-    AssetPriceHistory { },
+    PriceHistory { },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct AssetPriceHistoryResponse {
-    pub price_history: Vec<TSPricePoint>,
+pub struct PriceHistoryResponse {
+    pub price_history: Vec<PriceSnapshot>,
 }
 
 /**
@@ -76,12 +82,33 @@ pub struct HyperparametersResponse {
  */
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PoolStateResponse {
-    pub asset_opening_price: TSPricePoint,
-    pub leveraged_opening_price: TSPricePoint,
+    /**
+     * Price at "opening" (since leverage was reset)
+     */
+    pub opening_snapshot: PriceSnapshot,
 
+    /**
+     * Backing assets provided by both minters and providers
+     */
     pub assets_in_reserve: u32,
+
+    /**
+     * Minted assets
+     */
     pub total_leveraged_assets: u32,
+
+    /**
+     * Total share of all assets
+     *
+     * TODO is this just assets_in_reserve?
+     */
     pub total_asset_pool_share: u32,
+
+    /**
+     * Total share of all minted leveraged assets
+     *
+     * TODO is this just total_leveraged_assets?
+     */
     pub total_leveraged_pool_share: u32,
 }
 

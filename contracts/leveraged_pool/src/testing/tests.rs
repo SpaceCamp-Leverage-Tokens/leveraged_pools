@@ -1,7 +1,9 @@
 use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::{coins, from_binary, Addr, Uint128};
-use leveraged_pools::pool::{InstantiateMsg, QueryMsg, HyperparametersResponse, AssetPriceHistoryResponse};
-use crate::state::{PoolState};
+use leveraged_pools::pool::{
+    InstantiateMsg, QueryMsg, HyperparametersResponse,
+    PriceHistoryResponse, PoolStateResponse
+};
 use crate::contract::{instantiate, query};
 use crate::testing::mock_querier::{mock_dependencies};
 
@@ -56,17 +58,23 @@ fn proper_init() {
     /* Check that pool state was also initialized correctly */
     let msg = QueryMsg::PoolState { };
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let pool_state: PoolState = from_binary(&res).unwrap();
+    let pool_state: PoolStateResponse = from_binary(&res).unwrap();
     assert_eq!(pool_state.assets_in_reserve, 0);
 
     /* Assert that inital price was correctly queried from mocked TerraSwap */
-    assert_eq!(pool_state.asset_opening_price.timestamp > 0, true);
-    assert_eq!(pool_state.asset_opening_price.u_price.u128() / 1_000_000, 1_000);
+    assert_eq!(pool_state.opening_snapshot.timestamp > 0, true);
+    assert_eq!(pool_state.opening_snapshot.asset_price.u128() / 1_000_000, 1_000);
 
     /* Query asset price history */
-    let msg = QueryMsg::AssetPriceHistory { };
+    let msg = QueryMsg::PriceHistory { };
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
-    let u_price_history: AssetPriceHistoryResponse = from_binary(&res).unwrap();
-    let price_history = u_price_history.price_history;
-    assert_eq!(price_history.len(), 1);
+    let u_price_history: PriceHistoryResponse = from_binary(&res).unwrap();
+    let genesis_snapshot = u_price_history.price_history;
+    assert_eq!(genesis_snapshot.len(), 1);
+
+    let genesis_snapshot = genesis_snapshot[0];
+    /* At genesis leveraged price should equal asset price */
+    assert_eq!(genesis_snapshot.asset_price, genesis_snapshot.leveraged_price);
+    /* Verify genesis snapshot price is correct */
+    assert_eq!(genesis_snapshot.asset_price.u128() / 1_000_000, 1_000);
 }

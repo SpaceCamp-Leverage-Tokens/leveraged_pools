@@ -15,6 +15,9 @@ pub enum ContractError {
     #[error("Token has no liquidity")]
     NoTokenLiquidity {},
 
+    #[error("Passed address was invalid")]
+    InvalidAddr {},
+
     #[error("Unauthorized")]
     Unauthorized {},
 }
