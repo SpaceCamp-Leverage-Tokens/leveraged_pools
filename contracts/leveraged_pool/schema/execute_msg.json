@@ -5,11 +5,19 @@
     {
       "type": "object",
       "required": [
-        "provide_liquidity"
+        "create_new_pool"
       ],
       "properties": {
-        "provide_liquidity": {
-          "type": "object"
+        "create_new_pool": {
+          "type": "object",
+          "required": [
+            "pool_instantiate_msg"
+          ],
+          "properties": {
+            "pool_instantiate_msg": {
+              "$ref": "#/definitions/InstantiateMsg"
+            }
+          }
         }
       },
       "additionalProperties": false
@@ -17,50 +25,62 @@
     {
       "type": "object",
       "required": [
-        "withdraw_liquidity"
+        "broadcast_leverage_update"
       ],
       "properties": {
-        "withdraw_liquidity": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "mint_leveraged_asset"
-      ],
-      "properties": {
-        "mint_leveraged_asset": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "burn_leveraged_asset"
-      ],
-      "properties": {
-        "burn_leveraged_asset": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "set_daily_leverage_reference"
-      ],
-      "properties": {
-        "set_daily_leverage_reference": {
+        "broadcast_leverage_update": {
           "type": "object"
         }
       },
       "additionalProperties": false
     }
-  ]
+  ],
+  "definitions": {
+    "InstantiateMsg": {
+      "description": "Hyperparameter init",
+      "type": "object",
+      "required": [
+        "leverage_amount",
+        "leveraged_asset_addr",
+        "minimum_protocol_ratio",
+        "mint_premium",
+        "rebalance_premium",
+        "rebalance_ratio",
+        "terraswap_pair_addr"
+      ],
+      "properties": {
+        "leverage_amount": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "leveraged_asset_addr": {
+          "type": "string"
+        },
+        "minimum_protocol_ratio": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "mint_premium": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "rebalance_premium": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "rebalance_ratio": {
+          "type": "integer",
+          "format": "uint32",
+          "minimum": 0.0
+        },
+        "terraswap_pair_addr": {
+          "type": "string"
+        }
+      }
+    }
+  }
 }

@@ -45,7 +45,7 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreateNewPool { pool_instantiate_msg } => try_create_new_pool(deps, pool_instantiate_msg),
-        ExecuteMsg::SetDailyLeverageReference {} => try_broadcast_daily_leverage_reference(env, deps),
+        ExecuteMsg::BroadcastLeverageUpdate { } => try_broadcast_daily_leverage_reference(env, deps),
     }
 }
 
@@ -62,7 +62,7 @@ pub fn try_broadcast_daily_leverage_reference(env:Env, deps: DepsMut) -> Result<
 
     // If at least one calander day has not passed (Intent is trying to reset leverages at the start of the day )
     if stale_dt.day() >= current_dt.day(){
-        return Err(ContractError::Unauthorized{})
+        return Err(ContractError::NotTimeToUpdate{})
     }
  
     STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
@@ -187,7 +187,7 @@ mod tests {
         let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
         assert_eq!(0, res.messages.len());
 
-        let msg = ExecuteMsg::SetDailyLeverageReference { };
+        let msg = ExecuteMsg::BroadcastLeverageUpdate { };
         let info = mock_info("creator", &coins(1000, "earth"));
         let _res = execute(deps.as_mut(), mock_env(), info, msg).unwrap();
 
