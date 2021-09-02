@@ -7,7 +7,8 @@ use crate::error::ContractError;
 use crate::msg::{PoolResponse, ExecuteMsg, InstantiateMsg, QueryMsg};
 use crate::state::{State, STATE};
 use crate::response::{MsgInstantiateContractResponse};
-use leveraged_pools::pool::{InstantiateMsg as PoolInstantiatMsg};
+use leveraged_pools::pool::{InstantiateMsg as PoolInstantiatMsg, ExecuteMsg as PoolExecuteMsg};
+
 use protobuf::Message;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -42,8 +43,30 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreateNewPool { pool_instantiate_msg } => try_create_new_pool(deps, pool_instantiate_msg),
+        ExecuteMsg::SetDailyLeverageReference {} => try_set_daily_leverage_reference(deps),
     }
 }
+
+/**
+ *  Broadcasting message to reset the daily leveraged price reference
+ **/
+pub fn try_set_daily_leverage_reference(deps: DepsMut) -> Result<Response, ContractError> {
+    let state = STATE.load(deps.storage)?;
+    let mut messages: Vec<WasmMsg> = vec![];
+
+    for pool_addr in state.leveraged_pool_addrs{
+        messages.push(WasmMsg::Execute {
+                contract_addr: pool_addr.to_string(),
+                msg: to_binary(&PoolExecuteMsg::SetDailyLeverageReference{})?,
+                funds: vec![],
+            });
+        }
+    
+    // Hand out gov tokens
+    
+    Ok(Response::new().add_messages(messages))
+}
+
 pub fn try_create_new_pool(deps: DepsMut, pool_instantiate_msg:PoolInstantiatMsg) -> Result<Response, ContractError> {
 
     // TODO: Create new pool and pass contract id to leveraged_pool_addrs

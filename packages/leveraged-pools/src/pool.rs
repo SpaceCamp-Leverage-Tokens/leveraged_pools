@@ -40,6 +40,7 @@ pub enum ExecuteMsg {
     WithdrawLiquidity { },
     MintLeveragedAsset { },
     BurnLeveragedAsset { },
+    SetDailyLeverageReference { },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
