@@ -91,7 +91,7 @@ fn hyperparameters_is_valid(hyperparms:&Hyperparameters) -> bool {
     if hyperparms.mint_premium > 1_000_000{
         return false
     }
-    if hyperparms.rebalance_premium > 0_010_000{
+    if hyperparms.rebalance_premium > 0_100_000{
         return false
     }
     return true
