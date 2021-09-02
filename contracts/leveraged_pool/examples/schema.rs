@@ -1,10 +1,7 @@
 use std::env::current_dir;
 use std::fs::create_dir_all;
-
 use cosmwasm_schema::{export_schema, remove_schemas, schema_for};
-
-use leveraged_pools::pool::{ExecuteMsg,HyperparametersResponse,
-    InstantiateMsg, QueryMsg, PriceSnapshot, PriceHistoryResponse};
+use leveraged_pools::pool::*;
 
 fn main() {
     let mut out_dir = current_dir().unwrap();
@@ -18,4 +15,6 @@ fn main() {
     export_schema(&schema_for!(PriceSnapshot), &out_dir);
     export_schema(&schema_for!(PriceHistoryResponse), &out_dir);
     export_schema(&schema_for!(HyperparametersResponse), &out_dir);
+    export_schema(&schema_for!(PoolStateResponse), &out_dir);
+    export_schema(&schema_for!(AllPoolInfoResponse), &out_dir);
 }
