@@ -105,7 +105,7 @@ pub fn try_create_new_pool(deps: DepsMut, pool_instantiate_msg:PoolInstantiatMsg
 
 /// This just stores the result for future query
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
+pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> StdResult<Response> {
     match msg.id {
         1=> {
             let res:MsgInstantiateContractResponse = Message::parse_from_bytes(
@@ -118,6 +118,10 @@ pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
 
             STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
                 state.leveraged_pool_addrs.push(pool_addr);
+                // Set timestamp when first pool contract is initialized
+                if state.timestamp == 0 {
+                    state.timestamp = env.block.time.seconds();
+                }
                 Ok(state)
             }).expect("Error");
             Ok(Response::new())
