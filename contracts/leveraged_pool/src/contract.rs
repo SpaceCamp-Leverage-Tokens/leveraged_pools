@@ -45,6 +45,9 @@ pub fn instantiate(
         leveraged_asset_addr,
     };
 
+    if hyperparameters_is_valid(&hyper_p){
+        return Err(ContractError::InvalidPoolParams {})
+    }
     /* Fetch current TS price */
     let liason: TSLiason = TSLiason::new_from_pair(
         &hyper_p.terraswap_pair_addr,
@@ -76,6 +79,22 @@ pub fn instantiate(
 
     Ok(Response::new()
        .add_attribute("method", "instantiate"))
+}
+
+/**
+ * Checks for valid hyperparameters
+ */
+fn hyperparameters_is_valid(hyperparms:&Hyperparameters) -> bool {
+    if hyperparms.minimum_protocol_ratio > hyperparms.rebalance_premium{
+        return false
+    }
+    if hyperparms.mint_premium > 1_000_000{
+        return false
+    }
+    if hyperparms.rebalance_premium > 0_010_000{
+        return false
+    }
+    return true
 }
 
 /**
