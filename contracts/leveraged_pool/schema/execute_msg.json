@@ -49,6 +49,18 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_daily_leverage_reference"
+      ],
+      "properties": {
+        "set_daily_leverage_reference": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
     }
   ]
 }

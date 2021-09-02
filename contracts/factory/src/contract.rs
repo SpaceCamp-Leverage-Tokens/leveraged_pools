@@ -43,14 +43,14 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::CreateNewPool { pool_instantiate_msg } => try_create_new_pool(deps, pool_instantiate_msg),
-        ExecuteMsg::SetDailyLeverageReference {} => try_set_daily_leverage_reference(deps),
+        ExecuteMsg::SetDailyLeverageReference {} => try_broadcast_daily_leverage_reference(deps),
     }
 }
 
 /**
  *  Broadcasting message to reset the daily leveraged price reference
  **/
-pub fn try_set_daily_leverage_reference(deps: DepsMut) -> Result<Response, ContractError> {
+pub fn try_broadcast_daily_leverage_reference(deps: DepsMut) -> Result<Response, ContractError> {
     let state = STATE.load(deps.storage)?;
     let mut messages: Vec<WasmMsg> = vec![];
 
@@ -63,7 +63,6 @@ pub fn try_set_daily_leverage_reference(deps: DepsMut) -> Result<Response, Contr
         }
     
     // Hand out gov tokens
-    
     Ok(Response::new().add_messages(messages))
 }
 
@@ -93,20 +92,18 @@ pub fn try_create_new_pool(deps: DepsMut, pool_instantiate_msg:PoolInstantiatMsg
 pub fn reply(deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
     match msg.id {
         1=> {
-            let state = STATE.load(deps.storage)?;
-
             let res:MsgInstantiateContractResponse = Message::parse_from_bytes(
                 msg.result.unwrap().data.unwrap().as_slice(),
             )
             .map_err(|_| {
-                StdError::parse_err("MsgInstantiateContractResponse", "failed to parse data")
+                StdError::parse_err("MsgInstantiateContractResponse", "Failed to instantiate new pool")
             })?;
             let pool_addr = Addr::unchecked(res.get_contract_address());
 
             STATE.update(deps.storage, |mut state| -> Result<_, ContractError> {
                 state.leveraged_pool_addrs.push(pool_addr);
                 Ok(state)
-            });
+            }).expect("Error");
             Ok(Response::new())
         }
         _ => Err(StdError::generic_err("reply id is invalid"))
