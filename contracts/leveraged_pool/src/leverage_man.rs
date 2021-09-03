@@ -8,14 +8,14 @@
  * Additionally it maintains a history of price data for both the underlying
  * asset and for its leveraged token.
  */
-
 use std::vec::Vec;
 use cosmwasm_std::{
-    Deps, Env, StdResult, Storage, CanonicalAddr, Api, QuerierWrapper
+    Deps, Env, StdResult, Storage, CanonicalAddr, Api, QuerierWrapper, Uint128, Addr,
+    DepsMut
 };
 use crate::error::ContractError;
 use crate::swap::TSLiason;
-use cw_storage_plus::{Item};
+use cw_storage_plus::{Item, Map };
 use serde::{Deserialize, Serialize};
 use leveraged_pools::pool::{InstantiateMsg, PriceSnapshot};
 
@@ -74,7 +74,7 @@ pub fn init<'a>(
         latest_reset_snapshot: genesis_snapshot,
         assets_in_reserve: 0,
         total_leveraged_assets: 0,
-        total_asset_pool_share: 0,
+        total_asset_pool_share: Uint128::new(0),
         total_leveraged_pool_share: 0,
     };
 
@@ -84,6 +84,7 @@ pub fn init<'a>(
     HYPERPARAMETERS.save(storage, &hyper_p)?;
     POOLSTATE.save(storage, &init_state)?;
     PRICE_DATA.save(storage, &vec!(genesis_snapshot))?;
+    // LIQUIDITYSTATE.save(storage, )
 
     Ok(())
 }
@@ -104,6 +105,95 @@ fn price_history(storage: &dyn Storage) -> Vec<PriceSnapshot> {
     PRICE_DATA.load(storage).unwrap_or(Vec::new())
 }
 
+/***
+ * Retrieves Current Liquidity Position
+ */
+pub fn get_liquidity_map(deps: &DepsMut, addr:Addr) -> StdResult<ProviderPosition> {
+    let currently_in_pool = LIQUIDITYSTATE.has(deps.storage, &addr);
+    let mut my_partial_share = Uint128::new(0); //if no position currently open in the pool
+
+    if currently_in_pool{
+        my_partial_share = LIQUIDITYSTATE.load(deps.storage, &addr)?;
+    }
+
+    let pool_state = POOLSTATE.load(deps.storage)?;
+    let total_share = pool_state.total_asset_pool_share;
+
+    let my_position = ProviderPosition{
+        asset_pool_partial_share: my_partial_share,
+        asset_pool_total_share: total_share,
+    };
+    return Ok(my_position)
+}
+
+/**
+ * Retrieves snapshot of the opening prices + calcualtes the snapshot of the current up-to-date TS price snapshot
+ * with leveraged price
+ */
+pub fn get_price_context(deps: &DepsMut, env:Env, querier: QuerierWrapper) -> Result<PriceContext, ContractError>{
+
+    let hyper_p = HYPERPARAMETERS.load(deps.storage)?;
+    let pool_state = POOLSTATE.load(deps.storage)?;
+
+    let liason: TSLiason = TSLiason::new_from_pair(
+        &deps.api.addr_humanize(&hyper_p.terraswap_pair_addr)?,
+        &deps.api.addr_humanize(&hyper_p.leveraged_asset_addr)?,
+    );
+    let opening_asset_price = pool_state.latest_reset_snapshot.asset_price;
+    let opening_leveraged_price = pool_state.latest_reset_snapshot.leveraged_price;
+
+    let current_asset_price_ts_point = liason.fetch_ts_price(&env, querier)?;
+    let current_leveraged_price = get_leveraged_price(opening_asset_price, current_asset_price_ts_point.u_price, 
+        hyper_p.leverage_amount, opening_leveraged_price);
+
+    let current_snapshot = PriceSnapshot {
+        asset_price: current_asset_price_ts_point.u_price,
+        leveraged_price: current_leveraged_price,
+        timestamp: env.block.time.seconds(),
+    };
+
+    let context_snapshots = PriceContext{
+        opening_snapshot: pool_state.latest_reset_snapshot,
+        current_snapshot: current_snapshot,
+    };
+
+    Ok(context_snapshots)
+}
+
+/**
+ * Inputs the opening price, leveraged amount, etc to calculate the current leveraged price
+ */
+fn get_leveraged_price(start_asset_price:Uint128, current_asset_price:Uint128,
+     leverage_amount:Uint128, starting_leverage_price: Uint128) -> Uint128{
+        // If no change
+        if start_asset_price == current_asset_price{
+            return starting_leverage_price
+        }
+
+        // If asset increases in value
+        if start_asset_price < current_asset_price{
+            let absolute_change = current_asset_price - start_asset_price;
+            let percent_change = Uint128::new(1_000_000).saturating_mul(absolute_change)/start_asset_price;
+            let leverage_percent_change = Uint128::new(1_000_000)+leverage_amount.saturating_mul(percent_change)/Uint128::new(1_000_000);
+            
+            let current_leveraged_price = starting_leverage_price.saturating_mul(leverage_percent_change)/Uint128::new(1_000_000);
+            return current_leveraged_price
+        }   
+        
+        // If asset decreases in value
+        if start_asset_price > current_asset_price{
+            let absolute_change = start_asset_price - current_asset_price;
+            let percent_change = Uint128::new(1_000_000).saturating_mul(absolute_change)/start_asset_price;
+            let leverage_percent_change = Uint128::new(1_000_000)-leverage_amount.saturating_mul(percent_change)/Uint128::new(1_000_000);
+            
+            let current_leveraged_price = starting_leverage_price.saturating_mul(leverage_percent_change)/Uint128::new(1_000_000);
+            return current_leveraged_price
+        }
+
+        return Uint128::new(1_000_000)
+        
+}
+
 /**
  * Checks for valid hyperparameters
  */
@@ -115,6 +205,9 @@ fn hyperparameters_is_valid(hyperparms:&Hyperparameters) -> bool {
         return false
     }
     if hyperparms.rebalance_premium > 0_100_000{
+        return false
+    }
+    if hyperparms.leverage_amount < Uint128::new(1_000_000){
         return false
     }
     return true
@@ -160,7 +253,7 @@ fn price_timestamp_expired(snapshot: &PriceSnapshot, env: &Env) -> bool {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Hyperparameters {
-    pub leverage_amount: u32,
+    pub leverage_amount: Uint128,
     pub minimum_protocol_ratio: u32,
     pub rebalance_ratio: u32,
     pub mint_premium: u32,
@@ -168,6 +261,8 @@ pub struct Hyperparameters {
     pub terraswap_pair_addr: CanonicalAddr,
     pub leveraged_asset_addr: CanonicalAddr,
 }
+
+
 
 /**
  * Fetch a new price about every 15 minutes
@@ -191,6 +286,10 @@ const LEVERAGE_EXPIRY: u64 = 24 * 60 * 60;
 const PRICE_DATA_N: usize = 90 * 24 * 4;
 
 /**
+ * Tracking minted leveraged assets and their unleveraged friends
+ */
+pub const LIQUIDITYSTATE: Map<&Addr, Uint128> = Map::new("liquidity_partial_shares");
+/**
  * Historic price data
  */
 const PRICE_DATA: Item<Vec<PriceSnapshot>> = Item::new("price_data");
@@ -205,6 +304,16 @@ const HYPERPARAMETERS: Item<Hyperparameters> = Item::new("hyperparameters");
  * Tracking minted leveraged assets and their unleveraged friends
  */
 const POOLSTATE: Item<PoolState> = Item::new("pool_state");
+
+pub struct ProviderPosition {
+    pub asset_pool_partial_share: Uint128,
+    pub asset_pool_total_share: Uint128,
+}
+
+pub struct PriceContext{
+    pub opening_snapshot: PriceSnapshot,
+    pub current_snapshot: PriceSnapshot,
+}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct PoolState {
@@ -228,7 +337,7 @@ pub struct PoolState {
      *
      * TODO is this just assets_in_reserve?
      */
-    pub total_asset_pool_share: u32,
+    pub total_asset_pool_share: Uint128,
 
     /**
      * Total share of all minted leveraged assets
@@ -238,3 +347,33 @@ pub struct PoolState {
     pub total_leveraged_pool_share: u32,
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn proper_percent_increase() {
+        // Testing 50% increase with 2x leverage
+        let starting_price = Uint128::new(1_000_000);
+        let end_price = Uint128::new(1_500_000);
+        let leverage_amount = Uint128::new(2_000_000);
+        let leverage_start_price = Uint128::new(1_000_000);
+        let leverage_end_price = get_leveraged_price(starting_price, end_price, leverage_amount, leverage_start_price);
+        assert_eq!(Uint128::new(2_000_000),leverage_end_price);
+
+        // Testing price constant 
+        let starting_price = Uint128::new(1_000_000);
+        let end_price = Uint128::new(1_500_000);
+        let leverage_amount = Uint128::new(3_000_000);
+        let leverage_start_price = Uint128::new(1_000_000);
+        let leverage_end_price = get_leveraged_price(starting_price, end_price, leverage_amount, leverage_start_price);
+        assert_eq!(Uint128::new(2_500_000),leverage_end_price);
+
+        // Testing 10% decrease in price with 3x leverage 
+        let starting_price = Uint128::new(1_000_000);
+        let end_price = Uint128::new(0_900_000);
+        let leverage_amount = Uint128::new(3_000_000);
+        let leverage_start_price = Uint128::new(1_000_000);
+        let leverage_end_price = get_leveraged_price(starting_price, end_price, leverage_amount, leverage_start_price);
+        assert_eq!(Uint128::new(0_700_000),leverage_end_price);
+    }
+}

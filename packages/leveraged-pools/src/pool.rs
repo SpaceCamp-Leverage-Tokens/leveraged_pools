@@ -30,7 +30,7 @@ pub struct PriceSnapshot {
  */
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
-    pub leverage_amount: u32,
+    pub leverage_amount: Uint128,
     pub minimum_protocol_ratio: u32,
     pub rebalance_ratio: u32,
     pub mint_premium: u32,
@@ -89,7 +89,7 @@ pub struct PriceHistoryResponse {
  */
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct HyperparametersResponse {
-    pub leverage_amount: u32,
+    pub leverage_amount: Uint128,
     pub minimum_protocol_ratio: u32,
     pub rebalance_ratio: u32,
     pub mint_premium: u32,
@@ -123,7 +123,7 @@ pub struct PoolStateResponse {
      *
      * TODO is this just assets_in_reserve?
      */
-    pub total_asset_pool_share: u32,
+    pub total_asset_pool_share: Uint128,
 
     /**
      * Total share of all minted leveraged assets

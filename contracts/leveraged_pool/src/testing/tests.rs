@@ -27,7 +27,7 @@ fn proper_init() {
 
     /* Hyperparameters */
     let msg = InstantiateMsg {
-        leverage_amount: 2_000_000,
+        leverage_amount: Uint128::new(2_000_000),
         minimum_protocol_ratio: 2_000_000,
         rebalance_ratio: 2_500_000,
         mint_premium: 0_500_000,
@@ -47,7 +47,7 @@ fn proper_init() {
     let msg = QueryMsg::Hyperparameters { };
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
     let hyper_p: HyperparametersResponse = from_binary(&res).unwrap();
-    assert_eq!(hyper_p.leverage_amount, 2_000_000);
+    assert_eq!(hyper_p.leverage_amount, Uint128::new(2_000_000));
     assert_eq!(hyper_p.minimum_protocol_ratio, 2_000_000);
     assert_eq!(hyper_p.rebalance_ratio, 2_500_000);
     assert_eq!(hyper_p.mint_premium, 0_500_000);

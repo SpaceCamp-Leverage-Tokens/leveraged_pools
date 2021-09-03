@@ -30,9 +30,7 @@
       ],
       "properties": {
         "leverage_amount": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
+          "$ref": "#/definitions/Uint128"
         },
         "leveraged_asset_addr": {
           "type": "string"
@@ -89,9 +87,11 @@
         },
         "total_asset_pool_share": {
           "description": "Total share of all assets\n\nTODO is this just assets_in_reserve?",
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
+          "allOf": [
+            {
+              "$ref": "#/definitions/Uint128"
+            }
+          ]
         },
         "total_leveraged_assets": {
           "description": "Minted assets",
