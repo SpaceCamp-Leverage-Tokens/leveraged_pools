@@ -21,6 +21,18 @@
         }
       },
       "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "broadcast_leverage_update"
+      ],
+      "properties": {
+        "broadcast_leverage_update": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
     }
   ],
   "definitions": {

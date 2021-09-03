@@ -5,7 +5,8 @@
   "required": [
     "leveraged_pool_addrs",
     "leveraged_pool_code_id",
-    "owner"
+    "owner",
+    "timestamp"
   ],
   "properties": {
     "leveraged_pool_addrs": {
@@ -21,6 +22,11 @@
     },
     "owner": {
       "$ref": "#/definitions/Addr"
+    },
+    "timestamp": {
+      "type": "integer",
+      "format": "uint64",
+      "minimum": 0.0
     }
   },
   "definitions": {
