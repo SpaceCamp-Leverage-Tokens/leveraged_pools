@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "InstantiateMsg",
-  "description": "Hyperparameter init",
+  "title": "HyperparametersResponse",
+  "description": "If no parameters were adjusted over the contract lifetime these are the values the contract was initialized with",
   "type": "object",
   "required": [
     "leverage_amount",

@@ -12,7 +12,7 @@ use crate::error::ContractError;
 // use cw_storage_plus::{Item, Map};
 use cw20::{Cw20ExecuteMsg};
 use leveraged_pools::pool::{ProvideLiquidityMsg};
-// use crate::{leverage_man};
+use crate::{leverage_man};
 // use crate::swap::TSLiason;
 
 
@@ -40,9 +40,11 @@ pub fn try_execute_provide_liquidity(
         amount: msg.amount,
         recipient: env.contract.address.to_string()
     };
+    // Err(ContractError::Unimplemented {})
     //Accept funds from user
     //Update total asset share 
     //Update partial share mapping 
+
     Ok(Response::new().add_submessage(SubMsg {
             msg: WasmMsg::Execute{
                 contract_addr: msg.token.to_string(),
@@ -52,7 +54,7 @@ pub fn try_execute_provide_liquidity(
             .into(),
             gas_limit: None,
             id: 1,
-            reply_on: ReplyOn::Success,
+            reply_on: ReplyOn::Error,
         }))
 }
 
@@ -66,12 +68,12 @@ pub fn execute_withdraw_liquidity(
 
 /// This just stores the result for future query
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn reply(_deps: DepsMut, _env: Env, msg: Reply) -> StdResult<Response> {
+pub fn reply(deps: DepsMut, env: Env, msg: Reply) -> StdResult<Response> {
+
     match msg.id {
         1=> {
-
-
-            Ok(Response::new())
+            Err(StdError::generic_err("Execute message failed"))
+            // Ok(Response::new())
         }
         _ => Err(StdError::generic_err("reply id is invalid"))
     }    

@@ -1,46 +1,23 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "title": "InstantiateMsg",
-  "description": "Hyperparameter init",
+  "title": "PriceSnapshot",
   "type": "object",
   "required": [
-    "leverage_amount",
-    "leveraged_asset_addr",
-    "minimum_protocol_ratio",
-    "mint_premium",
-    "rebalance_premium",
-    "rebalance_ratio",
-    "terraswap_pair_addr"
+    "asset_price",
+    "leveraged_price",
+    "timestamp"
   ],
   "properties": {
-    "leverage_amount": {
+    "asset_price": {
       "$ref": "#/definitions/Uint128"
     },
-    "leveraged_asset_addr": {
-      "type": "string"
+    "leveraged_price": {
+      "$ref": "#/definitions/Uint128"
     },
-    "minimum_protocol_ratio": {
+    "timestamp": {
       "type": "integer",
-      "format": "uint32",
+      "format": "uint64",
       "minimum": 0.0
-    },
-    "mint_premium": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
-    },
-    "rebalance_premium": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
-    },
-    "rebalance_ratio": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
-    },
-    "terraswap_pair_addr": {
-      "type": "string"
     }
   },
   "definitions": {

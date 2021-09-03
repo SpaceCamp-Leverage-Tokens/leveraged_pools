@@ -58,7 +58,7 @@ pub fn execute(
          * SetDailyLeverageReference { }
          */
 
-        _ => { Err(ContractError::Unimplemented { }) },
+        _ => { Err(ContractError::InvalidPoolParams { }) },
     }
 }
 
@@ -82,10 +82,11 @@ pub fn execute_provide_liquidity(
     info: MessageInfo,
     env: Env,
     msg: ProvideLiquidityMsg
-) -> Result<LiquidityResponse, ContractError> {
+) -> Result<Response, ContractError> {
     let _ = liquid_man::try_execute_provide_liquidity(deps, info, &env, msg)?;
 
-    Err(ContractError::Unimplemented{ })
+    Ok(Response::new())
+    // Err(ContractError::Unimplemented{ })
 }
 
 /**
