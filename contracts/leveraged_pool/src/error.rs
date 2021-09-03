@@ -9,6 +9,10 @@ pub enum ContractError {
     #[error("Unimplemented")]
     Unimplemented {},
 
+    /* TODO This is StdError::SerializeErr */
+    #[error("Unable to serialize response")]
+    SerializeErr { },
+
     #[error("Unexpected oracle response")]
     UnexpectedOracleResponse {},
 

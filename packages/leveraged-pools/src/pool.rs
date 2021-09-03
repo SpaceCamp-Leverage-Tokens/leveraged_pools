@@ -49,6 +49,26 @@ pub enum ExecuteMsg {
     SetDailyLeverageReference { },
 }
 
+/**
+ * Response to withdrawal / deposit of liquidity
+ */
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub struct LiquidityResponse {
+    // TODO IDK probably pool_share or something
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct MinterPosition {
+    pub asset_pool_partial_share: Uint128,
+    pub leveraged_pool_partial_share: Uint128,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct ProviderPosition {
+}
+
+
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {

@@ -7,8 +7,8 @@ use crate::error::ContractError;
 use leveraged_pools::pool::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
     PoolStateResponse , AllPoolInfoResponse,
-    PriceHistoryResponse };
-use crate::leverage_man;
+    PriceHistoryResponse, LiquidityResponse };
+use crate::{leverage_man,liquid_man};
 
 /**
  * Instantiation entrypoint
@@ -33,13 +33,57 @@ pub fn instantiate(
  */
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
-    _deps: DepsMut,
+    deps: DepsMut,
     _env: Env,
-    _info: MessageInfo,
-    _msg: ExecuteMsg,
+    info: MessageInfo,
+    msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    /* TODO */
-    Err(ContractError::Unimplemented { })
+    match msg {
+        ExecuteMsg::ProvideLiquidity { } => Ok(Response::new()
+            .set_data(
+                to_binary(&execute_provide_liquidity(deps, info)?
+            ).or_else(|_| Err(ContractError::SerializeErr { }))?)
+        ),
+
+        ExecuteMsg::WithdrawLiquidity { } => Ok(Response::new()
+            .set_data(
+                to_binary(&execute_withdraw_liquidity(deps, info)?
+            ).or_else(|_| Err(ContractError::SerializeErr { }))?)
+        ),
+
+        /*
+         * TODO
+         * MintLeveragedAsset { }
+         * BurnLeveragedAsset { }
+         * SetDailyLeverageReference { }
+         */
+
+        _ => { Err(ContractError::Unimplemented { }) },
+    }
+}
+
+/**
+ * ExecuteMsg::WithdrawLiquidity
+ */
+pub fn execute_withdraw_liquidity(
+    deps: DepsMut,
+    info: MessageInfo
+) -> Result<LiquidityResponse, ContractError> {
+    let _ = liquid_man::execute_withdraw_liquidity(deps, info)?;
+
+    Err(ContractError::Unimplemented{ })
+}
+
+/**
+ * ExecuteMsg::ProvideLiquidity
+ */
+pub fn execute_provide_liquidity(
+    deps: DepsMut,
+    info: MessageInfo
+) -> Result<LiquidityResponse, ContractError> {
+    let _ = liquid_man::execute_provide_liquidity(deps, info)?;
+
+    Err(ContractError::Unimplemented{ })
 }
 
 /**
