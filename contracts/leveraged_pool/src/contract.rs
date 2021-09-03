@@ -7,7 +7,7 @@ use crate::error::ContractError;
 use leveraged_pools::pool::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
     PoolStateResponse , AllPoolInfoResponse,
-    PriceHistoryResponse, LiquidityResponse };
+    PriceHistoryResponse, LiquidityResponse,ProvideLiquidityMsg };
 use crate::{leverage_man,liquid_man};
 
 /**
@@ -34,14 +34,14 @@ pub fn instantiate(
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn execute(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
-        ExecuteMsg::ProvideLiquidity { } => Ok(Response::new()
+        ExecuteMsg::ProvideLiquidity { provide_liquidity_msg  } => Ok(Response::new()
             .set_data(
-                to_binary(&execute_provide_liquidity(deps, info)?
+                to_binary(&execute_provide_liquidity(deps, info, env, provide_liquidity_msg)?
             ).or_else(|_| Err(ContractError::SerializeErr { }))?)
         ),
 
@@ -79,9 +79,11 @@ pub fn execute_withdraw_liquidity(
  */
 pub fn execute_provide_liquidity(
     deps: DepsMut,
-    info: MessageInfo
+    info: MessageInfo,
+    env: Env,
+    msg: ProvideLiquidityMsg
 ) -> Result<LiquidityResponse, ContractError> {
-    let _ = liquid_man::execute_provide_liquidity(deps, info)?;
+    let _ = liquid_man::try_execute_provide_liquidity(deps, info, &env, msg)?;
 
     Err(ContractError::Unimplemented{ })
 }

@@ -417,6 +417,7 @@ dependencies = [
  "cosmwasm-storage",
  "cw-storage-plus",
  "cw0",
+ "cw20",
  "leveraged-pools",
  "schemars",
  "serde",
