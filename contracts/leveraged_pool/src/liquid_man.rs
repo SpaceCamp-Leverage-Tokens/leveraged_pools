@@ -4,17 +4,12 @@
  * Provides liquidity deposits and withdrawals
  */
 use cosmwasm_std::{
-    StdError, Uint128, DepsMut, MessageInfo, Env,
-    SubMsg, Response,Reply ,StdResult, 
+    StdError, Uint128, DepsMut, MessageInfo, Env,Response,Reply ,StdResult, 
 };
 use cosmwasm_std::entry_point;
 use crate::error::ContractError;
-// use cw_storage_plus::{Item, Map};
-// use cw20::{Cw20ExecuteMsg};
 use leveraged_pools::pool::{ProvideLiquidityMsg};
-// use crate::{leverage_man};
-// use crate::swap::TSLiason;
-
+use crate::{leverage_man};
 
 pub struct ProviderPosition {
     pub asset_pool_partial_share: Uint128,
@@ -22,61 +17,26 @@ pub struct ProviderPosition {
 }
 
 pub fn try_execute_provide_liquidity(
-    _deps: DepsMut,
+    deps: DepsMut,
     _info: MessageInfo,
-    _env: &Env,
-    _msg: ProvideLiquidityMsg,
-) -> Result<Response, StdError> {
+    env: &Env,
+    msg: ProvideLiquidityMsg,
+) -> Result<Response, ContractError> {
 
-    // let provider_position = leverage_man::get_liquidity_map(&deps,info.sender);
-    // let price_context = leverage_man::get_price_context(&deps, &env, deps.querier)?;
-
-    // let added_value = price_context.current_snapshot.asset_price.saturating_mul() ;
-    // Get total asset share form leverage_man?
-    // Get mapping from Addr to asset_partial_share from leverage_man
-
-    // let cw20_msg = Cw20ExecuteMsg::TransferFrom{
-    //     owner: info.sender.to_string(),
-    //     amount: msg.amount,
-    //     recipient: env.contract.address.to_string()
-    // };
-
-    let mut _messages: Vec<SubMsg> = vec![];
-
-    // Transfer Funds 
-    // messages.push(
-    //     SubMsg {
-    //     msg: CosmosMsg::Wasm(WasmMsg::Execute {
-    //     contract_addr: msg.token.to_string(),
-    //     msg: to_binary(&Cw20ExecuteMsg::Transfer {
-    //         // owner: info.sender.to_string(),
-    //         recipient: env.contract.address.to_string(),
-    //         amount: msg.amount,
-    //     })?,
-    //     funds: vec![],
-    //     }),
-    //     gas_limit:None,
-    //     id:1,
-    //     reply_on: ReplyOn::Always });
-
-    if true {
-        // return Err(StdError::generic_err(msg.amount.to_string())) 
-    }
+    let mut pool_state = leverage_man::get_pool_state(&deps.as_ref())?;
+    let provider_position = leverage_man::get_liquidity_map(&deps.as_ref(),&msg.sender)?;
+    let price_context = leverage_man::get_price_context(&deps.as_ref(), env, deps.querier)?;
     
-    // Err(ContractError::Unimplemented {})
-    //Accept funds from user
-    //Update total asset share 
+    let liquidity_value_added = msg.amount.saturating_mul(price_context.current_snapshot.asset_price); 
+    let new_provider_position = provider_position.asset_pool_partial_share + liquidity_value_added;
+    
+    pool_state.assets_in_reserve = pool_state.assets_in_reserve + msg.amount;
+    pool_state.total_asset_pool_share = pool_state.total_asset_pool_share + liquidity_value_added;
 
-    //ADD MESSAGE UPDATING USER SHARE 
-
-    Ok(Response::new())
-    // Ok(Response::new().add_submessages(msgs: impl IntoIterator<Item = SubMsg<T>>))
-
+    leverage_man::update_pool_state(deps.storage, pool_state)?;
+    leverage_man::update_pool_share(deps.storage, &msg.sender, &new_provider_position)
+    
 }
-
-// fn update_liquidity_state_add()-> <Result<Response, ContractError> {
-//     Err(ContractError::Unimplemented{ })
-// }
 
 pub fn execute_withdraw_liquidity(
     _deps: DepsMut,

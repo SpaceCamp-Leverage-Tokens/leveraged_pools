@@ -126,12 +126,12 @@ pub struct PoolStateResponse {
     /**
      * Backing assets provided by both minters and providers
      */
-    pub assets_in_reserve: u32,
+    pub assets_in_reserve: Uint128,
 
     /**
      * Minted assets
      */
-    pub total_leveraged_assets: u32,
+    pub total_leveraged_assets: Uint128,
 
     /**
      * Total share of all assets

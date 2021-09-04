@@ -11,7 +11,7 @@
 use std::vec::Vec;
 use cosmwasm_std::{
     Deps, Env, StdResult, Storage, CanonicalAddr, Api, QuerierWrapper, Uint128, Addr,
-    DepsMut
+    Response
 };
 use crate::error::ContractError;
 use crate::swap::TSLiason;
@@ -72,8 +72,8 @@ pub fn init<'a>(
     /* Initialize pool state */
     let init_state = PoolState {
         latest_reset_snapshot: genesis_snapshot,
-        assets_in_reserve: 0,
-        total_leveraged_assets: 0,
+        assets_in_reserve: Uint128::new(0),
+        total_leveraged_assets: Uint128::new(0),
         total_asset_pool_share: Uint128::new(0),
         total_leveraged_pool_share: 0,
     };
@@ -105,15 +105,31 @@ fn price_history(storage: &dyn Storage) -> Vec<PriceSnapshot> {
     PRICE_DATA.load(storage).unwrap_or(Vec::new())
 }
 
+pub fn update_pool_state(storage: &mut dyn Storage, new_pool_state: PoolState) -> Result<Response, ContractError> {
+    POOLSTATE.save(storage, &new_pool_state)?;
+    Ok(Response::new())
+}
+
+pub fn update_pool_share(storage: &mut dyn Storage, user_addr:&Addr, user_shares: &Uint128) -> Result<Response, ContractError> {
+    LIQUIDITYSTATE.save(storage, user_addr, user_shares)?;
+    Ok(Response::new())
+}
+
+/**
+ * Retrives a Mutable PoolState
+ */
+pub fn get_pool_state(deps: &Deps) -> StdResult<PoolState> {
+    POOLSTATE.load(deps.storage)
+}
+
 /***
  * Retrieves Current Liquidity Position
  */
-pub fn get_liquidity_map(deps: &DepsMut, addr:Addr) -> StdResult<ProviderPosition> {
-    let currently_in_pool = LIQUIDITYSTATE.has(deps.storage, &addr);
+pub fn get_liquidity_map(deps: &Deps, addr:&Addr) -> StdResult<ProviderPosition> {
     let mut my_partial_share = Uint128::new(0); //if no position currently open in the pool
 
-    if currently_in_pool{
-        my_partial_share = LIQUIDITYSTATE.load(deps.storage, &addr)?;
+    if LIQUIDITYSTATE.has(deps.storage, addr){
+        my_partial_share = LIQUIDITYSTATE.load(deps.storage, addr)?;
     }
 
     let pool_state = POOLSTATE.load(deps.storage)?;
@@ -130,7 +146,7 @@ pub fn get_liquidity_map(deps: &DepsMut, addr:Addr) -> StdResult<ProviderPositio
  * Retrieves snapshot of the opening prices + calcualtes the snapshot of the current up-to-date TS price snapshot
  * with leveraged price
  */
-pub fn get_price_context(deps: &DepsMut, env:Env, querier: QuerierWrapper) -> Result<PriceContext, ContractError>{
+pub fn get_price_context(deps: &Deps, env:&Env, querier: QuerierWrapper) -> Result<PriceContext, ContractError>{
 
     let hyper_p = HYPERPARAMETERS.load(deps.storage)?;
     let pool_state = POOLSTATE.load(deps.storage)?;
@@ -193,6 +209,7 @@ fn get_leveraged_price(start_asset_price:Uint128, current_asset_price:Uint128,
         return Uint128::new(1_000_000)
         
 }
+
 
 /**
  * Checks for valid hyperparameters
@@ -325,12 +342,12 @@ pub struct PoolState {
     /**
      * Backing assets provided by both minters and providers
      */
-    pub assets_in_reserve: u32,
+    pub assets_in_reserve: Uint128,
 
     /**
      * Minted assets
      */
-    pub total_leveraged_assets: u32,
+    pub total_leveraged_assets: Uint128,
 
     /**
      * Total share of all assets

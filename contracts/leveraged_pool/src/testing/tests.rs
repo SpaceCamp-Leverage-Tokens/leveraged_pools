@@ -59,7 +59,7 @@ fn proper_init() {
     let msg = QueryMsg::PoolState { };
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
     let pool_state: PoolStateResponse = from_binary(&res).unwrap();
-    assert_eq!(pool_state.assets_in_reserve, 0);
+    assert_eq!(pool_state.assets_in_reserve, Uint128::new(0));
 
     /* Assert that inital price was correctly queried from mocked TerraSwap */
     assert_eq!(pool_state.opening_snapshot.timestamp > 0, true);
