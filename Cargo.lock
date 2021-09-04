@@ -402,6 +402,7 @@ dependencies = [
  "cosmwasm-std",
  "cosmwasm-storage",
  "cw-storage-plus",
+ "cw20",
  "schemars",
  "serde",
  "thiserror",

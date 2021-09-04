@@ -2,13 +2,14 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
-    to_binary };
+    to_binary, from_binary };
 use crate::error::ContractError;
 use leveraged_pools::pool::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
-    PoolStateResponse , AllPoolInfoResponse,
+    PoolStateResponse , AllPoolInfoResponse,Cw20HookMsg,
     PriceHistoryResponse, LiquidityResponse,ProvideLiquidityMsg };
 use crate::{leverage_man,liquid_man};
+use cw20::{Cw20ReceiveMsg};
 
 /**
  * Instantiation entrypoint
@@ -39,6 +40,7 @@ pub fn execute(
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
     match msg {
+        ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
         ExecuteMsg::ProvideLiquidity { provide_liquidity_msg  } => Ok(Response::new()
             .set_data(
                 to_binary(&execute_provide_liquidity(deps, info, env, provide_liquidity_msg)?
@@ -60,6 +62,30 @@ pub fn execute(
 
         _ => { Err(ContractError::InvalidPoolParams { }) },
     }
+}
+
+pub fn receive_cw20(
+    deps: DepsMut,
+    env: Env,
+    info: MessageInfo,
+    cw20_msg: Cw20ReceiveMsg,
+) -> Result<Response, ContractError> {
+    match from_binary(&cw20_msg.msg) {
+        Ok(Cw20HookMsg::ProvideLiquidity {}) => {
+            // only asset contract can execute this message
+            let cw20_sender_addr = deps.api.addr_validate(&cw20_msg.sender)?;
+
+            let provide_liquidity_msg = ProvideLiquidityMsg {
+                sender: cw20_sender_addr,
+                amount: cw20_msg.amount,
+            };
+            let _ = liquid_man::try_execute_provide_liquidity(deps, info, &env, provide_liquidity_msg)?;
+
+            return Ok(Response::new())
+        }
+        Err(err) => Err(ContractError::Std(err)),
+    }
+
 }
 
 /**

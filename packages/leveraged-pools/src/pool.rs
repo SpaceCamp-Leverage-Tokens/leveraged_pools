@@ -2,6 +2,7 @@ use std::vec::{Vec};
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use cosmwasm_std::{Uint128, Addr};
+use cw20::Cw20ReceiveMsg;
 
 /**
  * Timestamp in seconds since 1970-01-01T00:00:00Z
@@ -42,11 +43,19 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
+    Receive(Cw20ReceiveMsg),
     ProvideLiquidity { provide_liquidity_msg:ProvideLiquidityMsg },
     WithdrawLiquidity { },
     MintLeveragedAsset { },
     BurnLeveragedAsset { },
     SetDailyLeverageReference { },
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+#[serde(rename_all = "snake_case")]
+pub enum Cw20HookMsg {
+    /// Sell a given amount of asset
+    ProvideLiquidity { },
 }
 
 /**
@@ -66,7 +75,7 @@ pub struct MinterPosition {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ProvideLiquidityMsg {
-    pub token:Addr,
+    pub sender:Addr,
     pub amount: Uint128,
 }
 
