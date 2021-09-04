@@ -89,6 +89,12 @@ pub fn init<'a>(
     Ok(())
 }
 
+pub fn get_asset_addr(deps: &Deps) -> StdResult<Addr> {
+    Ok(deps.api.addr_humanize(&HYPERPARAMETERS.load(
+        deps.storage)?.leveraged_asset_addr
+    )?)
+}
+
 pub fn query_hyperparameters(deps: &Deps) -> StdResult<Hyperparameters> {
     Ok(HYPERPARAMETERS.load(deps.storage)?)
 }
