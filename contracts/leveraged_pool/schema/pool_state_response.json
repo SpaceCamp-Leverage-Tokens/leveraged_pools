@@ -13,9 +13,11 @@
   "properties": {
     "assets_in_reserve": {
       "description": "Backing assets provided by both minters and providers",
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
+      "allOf": [
+        {
+          "$ref": "#/definitions/Uint128"
+        }
+      ]
     },
     "opening_snapshot": {
       "description": "Price at \"opening\" (since leverage was reset)",
@@ -35,9 +37,11 @@
     },
     "total_leveraged_assets": {
       "description": "Minted assets",
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
+      "allOf": [
+        {
+          "$ref": "#/definitions/Uint128"
+        }
+      ]
     },
     "total_leveraged_pool_share": {
       "description": "Total share of all minted leveraged assets\n\nTODO is this just total_leveraged_assets?",

@@ -33,7 +33,7 @@ pub struct PriceSnapshot {
 pub struct InstantiateMsg {
     pub leverage_amount: Uint128,
     pub minimum_protocol_ratio: u32,
-    pub rebalance_ratio: u32,
+    pub rebalance_ratio: Uint128,
     pub mint_premium: u32,
     pub rebalance_premium: u32,
     pub terraswap_pair_addr: String,
@@ -44,8 +44,7 @@ pub struct InstantiateMsg {
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Receive(Cw20ReceiveMsg),
-    ProvideLiquidity { provide_liquidity_msg:ProvideLiquidityMsg },
-    WithdrawLiquidity { },
+    WithdrawLiquidity { share_of_pool: Uint128 },
     MintLeveragedAsset { },
     BurnLeveragedAsset { },
     SetDailyLeverageReference { },
@@ -81,6 +80,8 @@ pub struct ProvideLiquidityMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ProviderPosition {
+    pub asset_pool_partial_share: Uint128,
+    pub asset_pool_total_share: Uint128,
 }
 
 
@@ -91,11 +92,17 @@ pub enum QueryMsg {
     PoolState { },
     AllPoolInfo { },
     PriceHistory { },
+    LiquidityPosition { address: Addr }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PriceHistoryResponse {
     pub price_history: Vec<PriceSnapshot>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct LiquidityPositionResponse {
+    pub position: ProviderPosition,
 }
 
 /**
@@ -106,7 +113,7 @@ pub struct PriceHistoryResponse {
 pub struct HyperparametersResponse {
     pub leverage_amount: Uint128,
     pub minimum_protocol_ratio: u32,
-    pub rebalance_ratio: u32,
+    pub rebalance_ratio: Uint128,
     pub mint_premium: u32,
     pub rebalance_premium: u32,
     pub terraswap_pair_addr: String,
@@ -126,12 +133,12 @@ pub struct PoolStateResponse {
     /**
      * Backing assets provided by both minters and providers
      */
-    pub assets_in_reserve: u32,
+    pub assets_in_reserve: Uint128,
 
     /**
      * Minted assets
      */
-    pub total_leveraged_assets: u32,
+    pub total_leveraged_assets: Uint128,
 
     /**
      * Total share of all assets
