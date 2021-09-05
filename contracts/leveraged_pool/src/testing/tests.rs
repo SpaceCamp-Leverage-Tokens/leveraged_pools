@@ -29,7 +29,7 @@ fn proper_init() {
     let msg = InstantiateMsg {
         leverage_amount: Uint128::new(2_000_000),
         minimum_protocol_ratio: 2_000_000,
-        rebalance_ratio: 2_500_000,
+        rebalance_ratio: Uint128::new(2_500_000),
         mint_premium: 0_500_000,
         rebalance_premium: 10_000_000,
         /* Previous terraswap pool */
@@ -49,7 +49,7 @@ fn proper_init() {
     let hyper_p: HyperparametersResponse = from_binary(&res).unwrap();
     assert_eq!(hyper_p.leverage_amount, Uint128::new(2_000_000));
     assert_eq!(hyper_p.minimum_protocol_ratio, 2_000_000);
-    assert_eq!(hyper_p.rebalance_ratio, 2_500_000);
+    assert_eq!(hyper_p.rebalance_ratio, Uint128::new(2_500_000));
     assert_eq!(hyper_p.mint_premium, 0_500_000);
     assert_eq!(hyper_p.rebalance_premium, 10_000_000);
     assert_eq!(hyper_p.terraswap_pair_addr, Addr::unchecked("mTSLA-UST"));

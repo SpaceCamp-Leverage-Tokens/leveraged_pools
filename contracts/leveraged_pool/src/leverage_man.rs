@@ -272,7 +272,7 @@ fn price_timestamp_expired(snapshot: &PriceSnapshot, env: &Env) -> bool {
 pub struct Hyperparameters {
     pub leverage_amount: Uint128,
     pub minimum_protocol_ratio: u32,
-    pub rebalance_ratio: u32,
+    pub rebalance_ratio: Uint128,
     pub mint_premium: u32,
     pub rebalance_premium: u32,
     pub terraswap_pair_addr: CanonicalAddr,
