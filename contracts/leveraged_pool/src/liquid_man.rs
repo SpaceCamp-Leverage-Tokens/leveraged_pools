@@ -70,8 +70,9 @@ pub fn execute_withdraw_liquidity(
     let tokens_requested = available_pool_tokens.saturating_mul(percent_pool_requested)/Uint128::new(1_000_000);
     
     // TODO: If PR is too low then Error 
+
     // if requested_share_of_pool < provider_position.asset_pool_partial_share{
-    //     return Err(ContractError::Std(StdError::generic_err(tokens_requested)))
+    //     return Err(ContractError::Std(StdError::generic_err(deps.api.addr_humanize(&hyper_p.leveraged_asset_addr)?.to_string())))
     // }
     
     let request_tokens_msg = CosmosMsg::Wasm(WasmMsg::Execute {

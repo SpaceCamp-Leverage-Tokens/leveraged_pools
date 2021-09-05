@@ -41,12 +41,7 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
-        ExecuteMsg::WithdrawLiquidity { share_of_pool } => Ok(Response::new()
-            .set_data(
-                to_binary(&execute_withdraw_liquidity(deps, info, env, share_of_pool)?
-            ).or_else(|_| Err(ContractError::SerializeErr { }))?)
-        ),
-
+        ExecuteMsg::WithdrawLiquidity { share_of_pool } => execute_withdraw_liquidity(deps, info, env, share_of_pool),
         /*
          * TODO
          * MintLeveragedAsset { }
@@ -91,9 +86,9 @@ pub fn execute_withdraw_liquidity(
     env: Env,
     share_of_pool: Uint128,
 ) -> Result<Response, ContractError> {
-    let _ = liquid_man::execute_withdraw_liquidity(deps, info, &env, share_of_pool)?;
 
-    Ok(Response::new())
+    liquid_man::execute_withdraw_liquidity(deps, info, &env, share_of_pool)
+
 }
 
 /**
@@ -105,10 +100,9 @@ pub fn execute_provide_liquidity(
     env: Env,
     msg: ProvideLiquidityMsg
 ) -> Result<Response, ContractError> {
-    let _ = liquid_man::try_execute_provide_liquidity(deps, info, &env, msg)?;
 
-    Ok(Response::new())
-    // Err(ContractError::Unimplemented{ })
+    liquid_man::try_execute_provide_liquidity(deps, info, &env, msg)
+
 }
 
 /**
