@@ -45,9 +45,11 @@
     },
     "total_leveraged_pool_share": {
       "description": "Total share of all minted leveraged assets\n\nTODO is this just total_leveraged_assets?",
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
+      "allOf": [
+        {
+          "$ref": "#/definitions/Uint128"
+        }
+      ]
     }
   },
   "definitions": {

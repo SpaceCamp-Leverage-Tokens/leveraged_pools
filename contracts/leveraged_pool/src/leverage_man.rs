@@ -10,14 +10,14 @@
  */
 use std::vec::Vec;
 use cosmwasm_std::{
-    Deps, Env, StdResult, Storage, CanonicalAddr, Api, QuerierWrapper, Uint128, Addr,
+    Deps, DepsMut, Env, StdResult, Storage, CanonicalAddr, Api, QuerierWrapper, Uint128, Addr,
     Response
 };
 use crate::error::ContractError;
 use crate::swap::TSLiason;
-use cw_storage_plus::{Item, Map };
+use cw_storage_plus::{Item, Map};
 use serde::{Deserialize, Serialize};
-use leveraged_pools::pool::{InstantiateMsg, PriceSnapshot, ProviderPosition};
+use leveraged_pools::pool::{InstantiateMsg, PriceSnapshot, ProviderPosition, MinterPosition};
 
 pub fn init<'a>(
     env: &Env,
@@ -72,10 +72,10 @@ pub fn init<'a>(
     /* Initialize pool state */
     let init_state = PoolState {
         latest_reset_snapshot: genesis_snapshot,
-        assets_in_reserve: Uint128::new(0),
-        total_leveraged_assets: Uint128::new(0),
-        total_asset_pool_share: Uint128::new(0),
-        total_leveraged_pool_share: 0,
+        assets_in_reserve: Uint128::zero(),
+        total_leveraged_assets: Uint128::zero(),
+        total_asset_pool_share: Uint128::zero(),
+        total_leveraged_pool_share: Uint128::zero(),
     };
 
     /* Saving game data to memory card (PS2) in MEMORY CARD SLOT 1. Do not
@@ -87,6 +87,39 @@ pub fn init<'a>(
     // LIQUIDITYSTATE.save(storage, )
 
     Ok(())
+}
+
+pub fn create_leveraged_position(
+    storage: &mut dyn Storage,
+    sender: &Addr,
+    mint_count: Uint128,
+    unleveraged_assets: Uint128,
+) -> Result<MinterPosition, ContractError> {
+    let mut state = POOLSTATE.load(storage)?;
+    let already_minted = MINTSTATE.load(storage, &sender)?;
+
+    MINTSTATE.save(storage, &sender, &(already_minted + mint_count))?;
+
+    state.total_leveraged_assets += mint_count;
+    state.total_leveraged_pool_share += mint_count;
+
+    state.assets_in_reserve += unleveraged_assets;
+    state.total_asset_pool_share += unleveraged_assets;
+    POOLSTATE.save(storage, &state)?;
+
+    Ok(MinterPosition {
+        leveraged_pool_partial_share: mint_count,
+        leveraged_pool_total_share: state.total_leveraged_pool_share,
+    })
+}
+
+pub fn leveraged_equivalence(_deps: &Deps, _asset_count: Uint128) -> Uint128 {
+    Uint128::from(1u128)
+}
+
+pub fn calculate_pr(total_assets: Uint128, total_leveraged_assets: Uint128) 
+-> Uint128 {
+    total_assets / total_leveraged_assets
 }
 
 pub fn get_asset_addr(deps: &Deps) -> StdResult<Addr> {
@@ -126,6 +159,27 @@ pub fn update_pool_share(storage: &mut dyn Storage, user_addr:&Addr, user_shares
  */
 pub fn get_pool_state(deps: &Deps) -> StdResult<PoolState> {
     POOLSTATE.load(deps.storage)
+}
+
+/***
+ * Retrieves Current Minted Position
+ */
+pub fn get_mint_map(deps: &DepsMut, addr:Addr) -> StdResult<MinterPosition> {
+    let currently_in_pool = MINTSTATE.has(deps.storage, &addr);
+    let mut my_partial_share = Uint128::new(0); //if no position currently open in the pool
+
+    if currently_in_pool {
+        my_partial_share = MINTSTATE.load(deps.storage, &addr)?;
+    }
+
+    let pool_state = POOLSTATE.load(deps.storage)?;
+    let total_share = pool_state.total_leveraged_pool_share;
+
+    let my_position = MinterPosition {
+        leveraged_pool_partial_share: my_partial_share,
+        leveraged_pool_total_share: total_share,
+    };
+    return Ok(my_position)
 }
 
 /***
@@ -224,10 +278,10 @@ fn hyperparameters_is_valid(hyperparms:&Hyperparameters) -> bool {
     if hyperparms.minimum_protocol_ratio > hyperparms.rebalance_premium{
         return false
     }
-    if hyperparms.mint_premium > 1_000_000{
+    if hyperparms.mint_premium > Uint128::new(1_000_000){
         return false
     }
-    if hyperparms.rebalance_premium > 0_100_000{
+    if hyperparms.rebalance_premium > Uint128::new(0_100_000) {
         return false
     }
     if hyperparms.leverage_amount < Uint128::new(1_000_000){
@@ -277,10 +331,10 @@ fn price_timestamp_expired(snapshot: &PriceSnapshot, env: &Env) -> bool {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct Hyperparameters {
     pub leverage_amount: Uint128,
-    pub minimum_protocol_ratio: u32,
+    pub minimum_protocol_ratio: Uint128,
     pub rebalance_ratio: Uint128,
-    pub mint_premium: u32,
-    pub rebalance_premium: u32,
+    pub mint_premium: Uint128,
+    pub rebalance_premium: Uint128,
     pub terraswap_pair_addr: CanonicalAddr,
     pub leveraged_asset_addr: CanonicalAddr,
 }
@@ -307,6 +361,11 @@ const LEVERAGE_EXPIRY: u64 = 24 * 60 * 60;
  */
 #[allow(dead_code)]
 const PRICE_DATA_N: usize = 90 * 24 * 4;
+
+/**
+ * Tracking minted leveraged assets and their unleveraged friends
+ */
+pub const MINTSTATE: Map<&Addr, Uint128> = Map::new("minted_partial_shares");
 
 /**
  * Tracking minted leveraged assets and their unleveraged friends
@@ -367,7 +426,7 @@ pub struct PoolState {
      *
      * TODO is this just total_leveraged_assets?
      */
-    pub total_leveraged_pool_share: u32,
+    pub total_leveraged_pool_share: Uint128,
 }
 
 #[cfg(test)]

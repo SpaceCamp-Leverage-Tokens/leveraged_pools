@@ -32,10 +32,10 @@ pub struct PriceSnapshot {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
     pub leverage_amount: Uint128,
-    pub minimum_protocol_ratio: u32,
+    pub minimum_protocol_ratio: Uint128,
     pub rebalance_ratio: Uint128,
-    pub mint_premium: u32,
-    pub rebalance_premium: u32,
+    pub mint_premium: Uint128,
+    pub rebalance_premium: Uint128,
     pub terraswap_pair_addr: String,
     pub leveraged_asset_addr: String,
 }
@@ -55,6 +55,17 @@ pub enum ExecuteMsg {
 pub enum Cw20HookMsg {
     /// Sell a given amount of asset
     ProvideLiquidity { },
+
+    /**
+     * Absorb a CW20 and open a leveraged position
+     */
+    MintLeveragedPosition { },
+    BurnLeveragedPosition { },
+}
+
+pub struct TryMint {
+    pub sender: Addr,
+    pub amount: Uint128
 }
 
 /**
@@ -68,8 +79,8 @@ pub struct LiquidityResponse {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct MinterPosition {
-    pub asset_pool_partial_share: Uint128,
     pub leveraged_pool_partial_share: Uint128,
+    pub leveraged_pool_total_share: Uint128,
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -112,10 +123,10 @@ pub struct LiquidityPositionResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct HyperparametersResponse {
     pub leverage_amount: Uint128,
-    pub minimum_protocol_ratio: u32,
+    pub minimum_protocol_ratio: Uint128,
     pub rebalance_ratio: Uint128,
-    pub mint_premium: u32,
-    pub rebalance_premium: u32,
+    pub mint_premium: Uint128,
+    pub rebalance_premium: Uint128,
     pub terraswap_pair_addr: String,
     pub leveraged_asset_addr: String,
 }
@@ -152,7 +163,7 @@ pub struct PoolStateResponse {
      *
      * TODO is this just total_leveraged_assets?
      */
-    pub total_leveraged_pool_share: u32,
+    pub total_leveraged_pool_share: Uint128,
 }
 
 /**

@@ -13,8 +13,14 @@ pub enum ContractError {
     #[error("Unable to serialize response")]
     SerializeErr { },
 
+    #[error("Received asset does not match pool denomination")]
+    WrongAssetLOL { },
+
     #[error("Unexpected oracle response")]
     UnexpectedOracleResponse {},
+
+    #[error("Proposed transaction would destabilize the pool")]
+    WouldViolatePoolHealth {},
 
     #[error("Token has no liquidity")]
     NoTokenLiquidity {},

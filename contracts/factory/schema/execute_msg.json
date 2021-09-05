@@ -5,29 +5,17 @@
     {
       "type": "object",
       "required": [
-        "receive"
+        "create_new_pool"
       ],
       "properties": {
-        "receive": {
-          "$ref": "#/definitions/Cw20ReceiveMsg"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "withdraw_liquidity"
-      ],
-      "properties": {
-        "withdraw_liquidity": {
+        "create_new_pool": {
           "type": "object",
           "required": [
-            "share_of_pool"
+            "pool_instantiate_msg"
           ],
           "properties": {
-            "share_of_pool": {
-              "$ref": "#/definitions/Uint128"
+            "pool_instantiate_msg": {
+              "$ref": "#/definitions/InstantiateMsg"
             }
           }
         }
@@ -37,34 +25,10 @@
     {
       "type": "object",
       "required": [
-        "mint_leveraged_asset"
+        "broadcast_leverage_update"
       ],
       "properties": {
-        "mint_leveraged_asset": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "burn_leveraged_asset"
-      ],
-      "properties": {
-        "burn_leveraged_asset": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "set_daily_leverage_reference"
-      ],
-      "properties": {
-        "set_daily_leverage_reference": {
+        "broadcast_leverage_update": {
           "type": "object"
         }
       },
@@ -72,26 +36,38 @@
     }
   ],
   "definitions": {
-    "Binary": {
-      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
-      "type": "string"
-    },
-    "Cw20ReceiveMsg": {
-      "description": "Cw20ReceiveMsg should be de/serialized under `Receive()` variant in a ExecuteMsg",
+    "InstantiateMsg": {
+      "description": "Hyperparameter init",
       "type": "object",
       "required": [
-        "amount",
-        "msg",
-        "sender"
+        "leverage_amount",
+        "leveraged_asset_addr",
+        "minimum_protocol_ratio",
+        "mint_premium",
+        "rebalance_premium",
+        "rebalance_ratio",
+        "terraswap_pair_addr"
       ],
       "properties": {
-        "amount": {
+        "leverage_amount": {
           "$ref": "#/definitions/Uint128"
         },
-        "msg": {
-          "$ref": "#/definitions/Binary"
+        "leveraged_asset_addr": {
+          "type": "string"
         },
-        "sender": {
+        "minimum_protocol_ratio": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "mint_premium": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "rebalance_premium": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "rebalance_ratio": {
+          "$ref": "#/definitions/Uint128"
+        },
+        "terraswap_pair_addr": {
           "type": "string"
         }
       }

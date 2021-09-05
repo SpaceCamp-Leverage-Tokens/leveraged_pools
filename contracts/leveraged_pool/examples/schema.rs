@@ -13,6 +13,7 @@ fn main() {
     export_schema(&schema_for!(ExecuteMsg), &out_dir);
     export_schema(&schema_for!(QueryMsg), &out_dir);
     export_schema(&schema_for!(PriceSnapshot), &out_dir);
+    export_schema(&schema_for!(LiquidityResponse), &out_dir);
     export_schema(&schema_for!(PriceHistoryResponse), &out_dir);
     export_schema(&schema_for!(HyperparametersResponse), &out_dir);
     export_schema(&schema_for!(PoolStateResponse), &out_dir);
