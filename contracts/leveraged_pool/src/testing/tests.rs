@@ -1,11 +1,30 @@
 use cosmwasm_std::testing::{mock_env, mock_info};
-use cosmwasm_std::{coins, from_binary, Addr, Uint128};
+use cosmwasm_std::{coins, from_binary, Addr, Uint128, Response};
 use leveraged_pools::pool::{
     InstantiateMsg, QueryMsg, HyperparametersResponse,
     PriceHistoryResponse, PoolStateResponse
 };
 use crate::contract::{instantiate, query};
-use crate::testing::mock_querier::{mock_dependencies};
+use crate::testing::mock_querier::{mock_dependencies, OwnedMockDeps};
+
+fn mtsla_2x_init(deps: &mut OwnedMockDeps) -> Response {
+    /* Hyperparameters */
+    let msg = InstantiateMsg {
+        leverage_amount: Uint128::new(2_000_000),
+        minimum_protocol_ratio: Uint128::new(2_000_000),
+        rebalance_ratio: Uint128::new(2_500_000),
+        mint_premium: Uint128::new(0_500_000),
+        rebalance_premium: Uint128::new(10_000_000),
+        /* Previous terraswap pool */
+        terraswap_pair_addr: String::from("mTSLA-UST"),
+        /* Contract of the asset that is being leveraged */
+        leveraged_asset_addr: String::from("mTSLA"),
+    };
+
+    /* Initialize leveraged pool */
+    let info = mock_info("leveraged", &coins(1000, "big_ones"));
+    instantiate(deps.as_mut(), mock_env(), info, msg).unwrap()
+}
 
 #[test]
 fn proper_init() {
@@ -24,23 +43,7 @@ fn proper_init() {
         ),
     ]);
 
-
-    /* Hyperparameters */
-    let msg = InstantiateMsg {
-        leverage_amount: Uint128::new(2_000_000),
-        minimum_protocol_ratio: Uint128::new(2_000_000),
-        rebalance_ratio: Uint128::new(2_500_000),
-        mint_premium: Uint128::new(0_500_000),
-        rebalance_premium: Uint128::new(10_000_000),
-        /* Previous terraswap pool */
-        terraswap_pair_addr: String::from("mTSLA-UST"),
-        /* Contract of the asset that is being leveraged */
-        leveraged_asset_addr: String::from("mTSLA"),
-    };
-
-    /* Initialize leveraged pool */
-    let info = mock_info("leveraged", &coins(1000, "big_ones"));
-    let res = instantiate(deps.as_mut(), mock_env(), info, msg).unwrap();
+    let res = mtsla_2x_init(&mut deps);
     assert_eq!(0, res.messages.len());
 
     /* Query hyperparameters and validate they are as we set them to be */

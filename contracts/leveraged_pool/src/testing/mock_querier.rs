@@ -23,6 +23,8 @@ use terra_cosmwasm::TerraQueryWrapper;
 use terraswap::asset::{Asset, AssetInfo};
 use terraswap::pair::PoolResponse;
 
+pub type OwnedMockDeps = OwnedDeps<MockStorage, MockApi, WasmMockQuerier>;
+
 /// mock_dependencies is a drop-in replacement for cosmwasm_std::testing::mock_dependencies
 /// which emulates terraswap pools
 pub fn mock_dependencies(
