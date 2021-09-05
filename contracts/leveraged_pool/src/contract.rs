@@ -2,13 +2,14 @@
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
-    to_binary, from_binary };
+    to_binary, from_binary, Addr };
 use crate::error::ContractError;
 use leveraged_pools::pool::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
     PoolStateResponse , AllPoolInfoResponse,Cw20HookMsg,
-    PriceHistoryResponse, LiquidityResponse,ProvideLiquidityMsg };
-use crate::{leverage_man,liquid_man};
+    PriceHistoryResponse, LiquidityResponse,ProvideLiquidityMsg,
+    TryMint};
+use crate::{leverage_man,liquid_man,mint_man};
 use cw20::{Cw20ReceiveMsg};
 
 /**
@@ -79,13 +80,47 @@ pub fn receive_cw20(
                 sender: cw20_sender_addr,
                 amount: cw20_msg.amount,
             };
-            let _ = liquid_man::try_execute_provide_liquidity(deps, info, &env, provide_liquidity_msg)?;
+            let _ = liquid_man::try_execute_provide_liquidity(
+                deps, info, &env, provide_liquidity_msg);
 
+            return Ok(Response::new())
+        }
+        Ok(Cw20HookMsg::MintLeveragedPosition {}) => {
+            execute_mint_leveraged(deps, info, &env, &cw20_msg)?;
+            return Ok(Response::new())
+        }
+        Ok(Cw20HookMsg::BurnLeveragedPosition {}) => {
+            /* TODO */
             return Ok(Response::new())
         }
         Err(err) => Err(ContractError::Std(err)),
     }
+}
 
+fn execute_mint_leveraged(
+    deps: DepsMut,
+    info: MessageInfo,
+    env: &Env,
+    msg: &Cw20ReceiveMsg,
+) -> Result<Response, ContractError> {
+    let sender = deps.api.addr_validate(&msg.sender)?;
+    let amount = msg.amount;
+
+    if !is_pooled_asset(&deps.as_ref(), &info.sender)? {
+        return Err(ContractError::WrongAssetLOL{ });
+    }
+
+    mint_man::execute_mint_leveraged(
+        deps, info, &env, &TryMint {
+            sender,
+            amount,
+        })?;
+
+    Ok(Response::new())
+}
+
+fn is_pooled_asset(deps: &Deps, addr: &Addr) -> StdResult<bool> {
+    Ok(leverage_man::get_asset_addr(&deps)? == *addr)
 }
 
 /**
@@ -109,7 +144,9 @@ pub fn execute_provide_liquidity(
     env: Env,
     msg: ProvideLiquidityMsg
 ) -> Result<Response, ContractError> {
-    let _ = liquid_man::try_execute_provide_liquidity(deps, info, &env, msg)?;
+    let _ = liquid_man::try_execute_provide_liquidity(
+        deps, info, &env, msg
+    )?;
 
     Ok(Response::new())
     // Err(ContractError::Unimplemented{ })

@@ -20,24 +20,16 @@
       "type": "string"
     },
     "minimum_protocol_ratio": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
+      "$ref": "#/definitions/Uint128"
     },
     "mint_premium": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
+      "$ref": "#/definitions/Uint128"
     },
     "rebalance_premium": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
+      "$ref": "#/definitions/Uint128"
     },
     "rebalance_ratio": {
-      "type": "integer",
-      "format": "uint32",
-      "minimum": 0.0
+      "$ref": "#/definitions/Uint128"
     },
     "terraswap_pair_addr": {
       "type": "string"

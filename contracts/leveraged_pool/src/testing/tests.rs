@@ -28,10 +28,10 @@ fn proper_init() {
     /* Hyperparameters */
     let msg = InstantiateMsg {
         leverage_amount: Uint128::new(2_000_000),
-        minimum_protocol_ratio: 2_000_000,
-        rebalance_ratio: 2_500_000,
-        mint_premium: 0_500_000,
-        rebalance_premium: 10_000_000,
+        minimum_protocol_ratio: Uint128::new(2_000_000),
+        rebalance_ratio: Uint128::new(2_500_000),
+        mint_premium: Uint128::new(0_500_000),
+        rebalance_premium: Uint128::new(10_000_000),
         /* Previous terraswap pool */
         terraswap_pair_addr: String::from("mTSLA-UST"),
         /* Contract of the asset that is being leveraged */
@@ -48,10 +48,10 @@ fn proper_init() {
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
     let hyper_p: HyperparametersResponse = from_binary(&res).unwrap();
     assert_eq!(hyper_p.leverage_amount, Uint128::new(2_000_000));
-    assert_eq!(hyper_p.minimum_protocol_ratio, 2_000_000);
-    assert_eq!(hyper_p.rebalance_ratio, 2_500_000);
-    assert_eq!(hyper_p.mint_premium, 0_500_000);
-    assert_eq!(hyper_p.rebalance_premium, 10_000_000);
+    assert_eq!(hyper_p.minimum_protocol_ratio, Uint128::new(2_000_000));
+    assert_eq!(hyper_p.rebalance_ratio, Uint128::new(2_500_000));
+    assert_eq!(hyper_p.mint_premium, Uint128::new(0_500_000));
+    assert_eq!(hyper_p.rebalance_premium, Uint128::new(10_000_000));
     assert_eq!(hyper_p.terraswap_pair_addr, Addr::unchecked("mTSLA-UST"));
     assert_eq!(hyper_p.leveraged_asset_addr, Addr::unchecked("mTSLA"));
 
@@ -59,7 +59,7 @@ fn proper_init() {
     let msg = QueryMsg::PoolState { };
     let res = query(deps.as_ref(), mock_env(), msg).unwrap();
     let pool_state: PoolStateResponse = from_binary(&res).unwrap();
-    assert_eq!(pool_state.assets_in_reserve, 0);
+    assert_eq!(pool_state.assets_in_reserve, Uint128::zero());
 
     /* Assert that inital price was correctly queried from mocked TerraSwap */
     assert_eq!(pool_state.opening_snapshot.timestamp > 0, true);
@@ -78,3 +78,4 @@ fn proper_init() {
     /* Verify genesis snapshot price is correct */
     assert_eq!(genesis_snapshot.asset_price.u128() / 1_000_000, 1_000);
 }
+

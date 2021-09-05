@@ -28,8 +28,9 @@ impl TSLiason {
         /* Query TS contract */
         let res: TerraSwapPoolResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: (*self.pool.as_str()).to_string(),
-            msg: to_binary(&TerraSwapPairQueryMsg::Pool { })?,
-        }))?;
+            msg: to_binary(&TerraSwapPairQueryMsg::Pool { }).or_else(
+                |e| Err(ContractError::Std(e)))?,
+        })).or_else(|e| Err(ContractError::Std(e)))?;
 
         /* Should always return 2 assets */
         if res.assets.len() != 2 {

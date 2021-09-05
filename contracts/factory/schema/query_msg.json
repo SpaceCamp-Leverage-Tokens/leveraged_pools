@@ -5,10 +5,10 @@
     {
       "type": "object",
       "required": [
-        "hyperparameters"
+        "get_pools"
       ],
       "properties": {
-        "hyperparameters": {
+        "get_pools": {
           "type": "object"
         }
       },
@@ -17,34 +17,10 @@
     {
       "type": "object",
       "required": [
-        "pool_state"
+        "get_last_reset"
       ],
       "properties": {
-        "pool_state": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "all_pool_info"
-      ],
-      "properties": {
-        "all_pool_info": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
-        "price_history"
-      ],
-      "properties": {
-        "price_history": {
+        "get_last_reset": {
           "type": "object"
         }
       },
