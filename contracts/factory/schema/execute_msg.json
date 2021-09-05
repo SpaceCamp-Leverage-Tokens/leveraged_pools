@@ -5,17 +5,29 @@
     {
       "type": "object",
       "required": [
-        "create_new_pool"
+        "receive"
       ],
       "properties": {
-        "create_new_pool": {
+        "receive": {
+          "$ref": "#/definitions/Cw20ReceiveMsg"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "withdraw_liquidity"
+      ],
+      "properties": {
+        "withdraw_liquidity": {
           "type": "object",
           "required": [
-            "pool_instantiate_msg"
+            "share_of_pool"
           ],
           "properties": {
-            "pool_instantiate_msg": {
-              "$ref": "#/definitions/InstantiateMsg"
+            "share_of_pool": {
+              "$ref": "#/definitions/Uint128"
             }
           }
         }
@@ -25,10 +37,34 @@
     {
       "type": "object",
       "required": [
-        "broadcast_leverage_update"
+        "mint_leveraged_asset"
       ],
       "properties": {
-        "broadcast_leverage_update": {
+        "mint_leveraged_asset": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "burn_leveraged_asset"
+      ],
+      "properties": {
+        "burn_leveraged_asset": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
+        "set_daily_leverage_reference"
+      ],
+      "properties": {
+        "set_daily_leverage_reference": {
           "type": "object"
         }
       },
@@ -36,46 +72,26 @@
     }
   ],
   "definitions": {
-    "InstantiateMsg": {
-      "description": "Hyperparameter init",
+    "Binary": {
+      "description": "Binary is a wrapper around Vec<u8> to add base64 de/serialization with serde. It also adds some helper methods to help encode inline.\n\nThis is only needed as serde-json-{core,wasm} has a horrible encoding for Vec<u8>",
+      "type": "string"
+    },
+    "Cw20ReceiveMsg": {
+      "description": "Cw20ReceiveMsg should be de/serialized under `Receive()` variant in a ExecuteMsg",
       "type": "object",
       "required": [
-        "leverage_amount",
-        "leveraged_asset_addr",
-        "minimum_protocol_ratio",
-        "mint_premium",
-        "rebalance_premium",
-        "rebalance_ratio",
-        "terraswap_pair_addr"
+        "amount",
+        "msg",
+        "sender"
       ],
       "properties": {
-        "leverage_amount": {
+        "amount": {
           "$ref": "#/definitions/Uint128"
         },
-        "leveraged_asset_addr": {
-          "type": "string"
+        "msg": {
+          "$ref": "#/definitions/Binary"
         },
-        "minimum_protocol_ratio": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "mint_premium": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "rebalance_premium": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "rebalance_ratio": {
-          "type": "integer",
-          "format": "uint32",
-          "minimum": 0.0
-        },
-        "terraswap_pair_addr": {
+        "sender": {
           "type": "string"
         }
       }

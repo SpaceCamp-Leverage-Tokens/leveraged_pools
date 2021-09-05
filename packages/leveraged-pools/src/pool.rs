@@ -44,8 +44,7 @@ pub struct InstantiateMsg {
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     Receive(Cw20ReceiveMsg),
-    ProvideLiquidity { provide_liquidity_msg:ProvideLiquidityMsg },
-    WithdrawLiquidity { },
+    WithdrawLiquidity { share_of_pool: Uint128 },
     MintLeveragedAsset { },
     BurnLeveragedAsset { },
     SetDailyLeverageReference { },
@@ -81,6 +80,8 @@ pub struct ProvideLiquidityMsg {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ProviderPosition {
+    pub asset_pool_partial_share: Uint128,
+    pub asset_pool_total_share: Uint128,
 }
 
 
@@ -91,11 +92,17 @@ pub enum QueryMsg {
     PoolState { },
     AllPoolInfo { },
     PriceHistory { },
+    LiquidityPosition { address: Addr }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct PriceHistoryResponse {
     pub price_history: Vec<PriceSnapshot>,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct LiquidityPositionResponse {
+    pub position: ProviderPosition,
 }
 
 /**

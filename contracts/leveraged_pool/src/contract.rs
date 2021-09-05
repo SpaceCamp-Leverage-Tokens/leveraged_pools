@@ -1,13 +1,13 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult,
+    Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Addr, Uint128,
     to_binary, from_binary };
 use crate::error::ContractError;
 use leveraged_pools::pool::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
     PoolStateResponse , AllPoolInfoResponse,Cw20HookMsg,
-    PriceHistoryResponse, LiquidityResponse,ProvideLiquidityMsg };
+    PriceHistoryResponse,ProvideLiquidityMsg, LiquidityPositionResponse };
 use crate::{leverage_man,liquid_man};
 use cw20::{Cw20ReceiveMsg};
 
@@ -41,15 +41,9 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
-        ExecuteMsg::ProvideLiquidity { provide_liquidity_msg  } => Ok(Response::new()
+        ExecuteMsg::WithdrawLiquidity { share_of_pool } => Ok(Response::new()
             .set_data(
-                to_binary(&execute_provide_liquidity(deps, info, env, provide_liquidity_msg)?
-            ).or_else(|_| Err(ContractError::SerializeErr { }))?)
-        ),
-
-        ExecuteMsg::WithdrawLiquidity { } => Ok(Response::new()
-            .set_data(
-                to_binary(&execute_withdraw_liquidity(deps, info)?
+                to_binary(&execute_withdraw_liquidity(deps, info, env, share_of_pool)?
             ).or_else(|_| Err(ContractError::SerializeErr { }))?)
         ),
 
@@ -93,11 +87,13 @@ pub fn receive_cw20(
  */
 pub fn execute_withdraw_liquidity(
     deps: DepsMut,
-    info: MessageInfo
-) -> Result<LiquidityResponse, ContractError> {
-    let _ = liquid_man::execute_withdraw_liquidity(deps, info)?;
+    info: MessageInfo,
+    env: Env,
+    share_of_pool: Uint128,
+) -> Result<Response, ContractError> {
+    let _ = liquid_man::execute_withdraw_liquidity(deps, info, &env, share_of_pool)?;
 
-    Err(ContractError::Unimplemented{ })
+    Ok(Response::new())
 }
 
 /**
@@ -146,6 +142,15 @@ fn query_price_history(deps: Deps) -> StdResult<PriceHistoryResponse> {
 }
 
 /**
+ * QueryMsg::PriceHistory
+ */
+fn query_addr_liquidity_position(deps: Deps, address:Addr) -> StdResult<LiquidityPositionResponse> {
+    Ok(LiquidityPositionResponse {
+        position: leverage_man::get_liquidity_position(&deps, &address)?,
+    })
+}
+
+/**
  * QueryMsg::PoolState
  */
 fn query_pool_state(deps: Deps) -> StdResult<PoolStateResponse> {
@@ -180,6 +185,7 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::PoolState { } => to_binary(&query_pool_state(deps)?),
         QueryMsg::AllPoolInfo { } => to_binary(&query_all_pool_info(deps)?),
         QueryMsg::PriceHistory { } => to_binary(&query_price_history(deps)?),
+        QueryMsg::LiquidityPosition { address } => to_binary(&query_addr_liquidity_position(deps, address)?),
     }
 }
 

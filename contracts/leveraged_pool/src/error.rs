@@ -27,4 +27,7 @@ pub enum ContractError {
 
     #[error("Invalid Leveraged Pool Params")]
     InvalidPoolParams {},
+
+    #[error("Insufficient Funds")]
+    InsuficientFunds {},
 }

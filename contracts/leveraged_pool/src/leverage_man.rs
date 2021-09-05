@@ -17,7 +17,7 @@ use crate::error::ContractError;
 use crate::swap::TSLiason;
 use cw_storage_plus::{Item, Map };
 use serde::{Deserialize, Serialize};
-use leveraged_pools::pool::{InstantiateMsg, PriceSnapshot};
+use leveraged_pools::pool::{InstantiateMsg, PriceSnapshot, ProviderPosition};
 
 pub fn init<'a>(
     env: &Env,
@@ -125,7 +125,7 @@ pub fn get_pool_state(deps: &Deps) -> StdResult<PoolState> {
 /***
  * Retrieves Current Liquidity Position
  */
-pub fn get_liquidity_map(deps: &Deps, addr:&Addr) -> StdResult<ProviderPosition> {
+pub fn get_liquidity_position(deps: &Deps, addr:&Addr) -> StdResult<ProviderPosition> {
     let mut my_partial_share = Uint128::new(0); //if no position currently open in the pool
 
     if LIQUIDITYSTATE.has(deps.storage, addr){
@@ -322,10 +322,10 @@ const HYPERPARAMETERS: Item<Hyperparameters> = Item::new("hyperparameters");
  */
 const POOLSTATE: Item<PoolState> = Item::new("pool_state");
 
-pub struct ProviderPosition {
-    pub asset_pool_partial_share: Uint128,
-    pub asset_pool_total_share: Uint128,
-}
+// pub struct ProviderPosition {
+//     pub asset_pool_partial_share: Uint128,
+//     pub asset_pool_total_share: Uint128,
+// }
 
 pub struct PriceContext{
     pub opening_snapshot: PriceSnapshot,
