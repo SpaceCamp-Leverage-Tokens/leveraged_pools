@@ -1,5 +1,4 @@
-use crate::error::ContractError;
-use cosmwasm_std::{Env, Addr, to_binary, QueryRequest, WasmQuery};
+use cosmwasm_std::{Env, Addr, to_binary, QueryRequest, WasmQuery, StdResult, StdError};
 use cosmwasm_std::{Uint128, QuerierWrapper};
 use terraswap::pair::{
     QueryMsg as TerraSwapPairQueryMsg,
@@ -24,7 +23,7 @@ impl TSLiason {
     }
 
     /* Query given a single TS pool for current price */
-    pub fn fetch_ts_price(&self, env: &Env, querier: QuerierWrapper) -> Result<TSPricePoint, ContractError> {
+    pub fn fetch_ts_price(&self, env: &Env, querier: QuerierWrapper) -> StdResult<TSPricePoint> {
         /* Query TS contract */
         let res: TerraSwapPoolResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
             contract_addr: (*self.pool.as_str()).to_string(),
@@ -33,7 +32,7 @@ impl TSLiason {
 
         /* Should always return 2 assets */
         if res.assets.len() != 2 {
-            return Err(ContractError::UnexpectedOracleResponse { });
+            return Err(StdError::generic_err("Should always return 2 assets"));
         }
 
         /* Separate the primary asset from its denomination */
@@ -58,7 +57,7 @@ impl TSLiason {
 
         /* Maybe not an error here, but I don't care either way right now */
         if asset_amt == 0u128 || capital_amt == 0u128 {
-            return Err(ContractError::NoTokenLiquidity { });
+            return Err(StdError::generic_err("Should always return 2 assets"));
         }
 
         /* Derive price from pool volume */

@@ -155,6 +155,12 @@ pub struct PoolStateResponse {
     pub total_leveraged_pool_share: u32,
 }
 
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct PriceContext{
+    pub opening_snapshot: PriceSnapshot,
+    pub current_snapshot: PriceSnapshot,
+}
+
 /**
  * One query to minimze entrances to blockchain
  */
@@ -162,5 +168,6 @@ pub struct PoolStateResponse {
 pub struct AllPoolInfoResponse {
     pub hyperparameters: HyperparametersResponse,
     pub pool_state: PoolStateResponse,
+    pub price_context: PriceContext,
 }
 

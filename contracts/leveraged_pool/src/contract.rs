@@ -1,7 +1,7 @@
 #[cfg(not(feature = "library"))]
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
-    Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Addr, Uint128,
+    Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Addr, Uint128,QuerierWrapper,
     to_binary, from_binary };
 use crate::error::ContractError;
 use leveraged_pools::pool::{
@@ -162,10 +162,11 @@ fn query_pool_state(deps: Deps) -> StdResult<PoolStateResponse> {
 /**
  * QueryMsg::AllPoolInfo
  */
-fn query_all_pool_info(deps: Deps) -> StdResult<AllPoolInfoResponse> {
+fn query_all_pool_info(deps: Deps, env: &Env, querier: QuerierWrapper) -> StdResult<AllPoolInfoResponse> {
     Ok(AllPoolInfoResponse {
         hyperparameters: query_hyperparameters(deps)?,
         pool_state: query_pool_state(deps)?,
+        price_context: leverage_man::get_price_context(&deps, &env, querier)?,
     })
 }
 
@@ -173,11 +174,11 @@ fn query_all_pool_info(deps: Deps) -> StdResult<AllPoolInfoResponse> {
  * Query entrypoint
  */
 #[cfg_attr(not(feature = "library"), entry_point)]
-pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
+pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
         QueryMsg::Hyperparameters { } => to_binary(&query_hyperparameters(deps)?),
         QueryMsg::PoolState { } => to_binary(&query_pool_state(deps)?),
-        QueryMsg::AllPoolInfo { } => to_binary(&query_all_pool_info(deps)?),
+        QueryMsg::AllPoolInfo { } => to_binary(&query_all_pool_info(deps,&env, deps.querier)?),
         QueryMsg::PriceHistory { } => to_binary(&query_price_history(deps)?),
         QueryMsg::LiquidityPosition { address } => to_binary(&query_addr_liquidity_position(deps, address)?),
     }

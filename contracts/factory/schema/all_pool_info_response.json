@@ -5,7 +5,8 @@
   "type": "object",
   "required": [
     "hyperparameters",
-    "pool_state"
+    "pool_state",
+    "price_context"
   ],
   "properties": {
     "hyperparameters": {
@@ -13,6 +14,9 @@
     },
     "pool_state": {
       "$ref": "#/definitions/PoolStateResponse"
+    },
+    "price_context": {
+      "$ref": "#/definitions/PriceContext"
     }
   },
   "definitions": {
@@ -106,6 +110,21 @@
           "type": "integer",
           "format": "uint32",
           "minimum": 0.0
+        }
+      }
+    },
+    "PriceContext": {
+      "type": "object",
+      "required": [
+        "current_snapshot",
+        "opening_snapshot"
+      ],
+      "properties": {
+        "current_snapshot": {
+          "$ref": "#/definitions/PriceSnapshot"
+        },
+        "opening_snapshot": {
+          "$ref": "#/definitions/PriceSnapshot"
         }
       }
     },

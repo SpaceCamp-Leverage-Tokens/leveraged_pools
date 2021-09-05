@@ -17,7 +17,7 @@ use crate::error::ContractError;
 use crate::swap::TSLiason;
 use cw_storage_plus::{Item, Map };
 use serde::{Deserialize, Serialize};
-use leveraged_pools::pool::{InstantiateMsg, PriceSnapshot, ProviderPosition};
+use leveraged_pools::pool::{InstantiateMsg, PriceSnapshot, ProviderPosition, PriceContext};
 
 pub fn init<'a>(
     env: &Env,
@@ -146,7 +146,7 @@ pub fn get_liquidity_position(deps: &Deps, addr:&Addr) -> StdResult<ProviderPosi
  * Retrieves snapshot of the opening prices + calcualtes the snapshot of the current up-to-date TS price snapshot
  * with leveraged price
  */
-pub fn get_price_context(deps: &Deps, env:&Env, querier: QuerierWrapper) -> Result<PriceContext, ContractError>{
+pub fn get_price_context(deps: &Deps, env:&Env, querier: QuerierWrapper) -> StdResult<PriceContext>{
 
     let hyper_p = HYPERPARAMETERS.load(deps.storage)?;
     let pool_state = POOLSTATE.load(deps.storage)?;
@@ -326,11 +326,6 @@ const POOLSTATE: Item<PoolState> = Item::new("pool_state");
 //     pub asset_pool_partial_share: Uint128,
 //     pub asset_pool_total_share: Uint128,
 // }
-
-pub struct PriceContext{
-    pub opening_snapshot: PriceSnapshot,
-    pub current_snapshot: PriceSnapshot,
-}
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
 pub struct PoolState {
