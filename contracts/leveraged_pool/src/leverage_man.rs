@@ -96,9 +96,15 @@ pub fn create_leveraged_position(
     unleveraged_assets: Uint128,
 ) -> Result<MinterPosition, ContractError> {
     let mut state = POOLSTATE.load(storage)?;
-    let already_minted = MINTSTATE.load(storage, &sender)?;
+    let already_minted = match MINTSTATE.load(storage, &sender) {
+        Ok(mint) => { mint },
+        _ => { Uint128::zero() },
+    };
 
-    MINTSTATE.save(storage, &sender, &(already_minted + mint_count))?;
+    let new_mint_count = already_minted + mint_count;
+
+    MINTSTATE.save(storage, &sender, &new_mint_count)?;
+
 
     state.total_leveraged_assets += mint_count;
     state.total_leveraged_pool_share += mint_count;
@@ -113,8 +119,8 @@ pub fn create_leveraged_position(
     })
 }
 
-pub fn leveraged_equivalence(_deps: &Deps, _asset_count: Uint128) -> Uint128 {
-    Uint128::from(1u128)
+pub fn leveraged_equivalence(_deps: &Deps, asset_count: Uint128) -> Uint128 {
+    asset_count
 }
 
 pub fn calculate_pr(total_assets: Uint128, total_leveraged_assets: Uint128) 
