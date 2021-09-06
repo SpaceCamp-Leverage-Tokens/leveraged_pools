@@ -15,7 +15,7 @@ use crate::error::ContractError;
 pub fn execute_mint_leveraged(
     deps: DepsMut,
     _info: &MessageInfo,
-    _env: &Env,
+    env: &Env,
     proposed_mint: &TryMint,
 ) -> Result<MinterPosition, ContractError> {
     let state = leverage_man::query_pool_state(&deps.as_ref())?;
@@ -23,8 +23,8 @@ pub fn execute_mint_leveraged(
 
     let unleveraged_assets = proposed_mint.amount;
     let leveraged_assets = leverage_man::leveraged_equivalence(
-            &deps.as_ref(), unleveraged_assets,
-    );
+            &deps.as_ref(), env, unleveraged_assets,
+    )?;
 
     if leverage_man::calculate_pr(
         state.assets_in_reserve,
@@ -44,7 +44,7 @@ pub fn execute_mint_leveraged(
 pub fn execute_burn_leveraged(
     deps: DepsMut,
     _info: &MessageInfo,
-    _env: &Env,
+    env: &Env,
     proposed_burn: &TryBurn,
 ) -> Result<MinterPosition, ContractError> {
     let state = leverage_man::query_pool_state(&deps.as_ref())?;
@@ -66,9 +66,8 @@ pub fn execute_burn_leveraged(
     );
 
     let proposed_redeem_units = leverage_man::unleveraged_equivalence(
-        &deps.as_ref(),
-        proposed_burn_units,
-    );
+        &deps.as_ref(), env, proposed_burn_units,
+    )?;
 
     if leverage_man::calculate_pr(
         state.assets_in_reserve - proposed_redeem_units,

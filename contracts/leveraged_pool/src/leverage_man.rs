@@ -144,12 +144,28 @@ pub fn burn_leveraged_position(
     Ok(curr_pos)
 }
 
-pub fn leveraged_equivalence(_deps: &Deps, asset_count: Uint128) -> Uint128 {
-    asset_count
+pub fn leveraged_equivalence(
+    deps: &Deps,
+    env: &Env,
+    asset_count: Uint128
+) -> Result<Uint128, ContractError> {
+    let curr = get_price_context(deps, env, deps.querier)?.current_snapshot;
+    Ok(asset_count.multiply_ratio(
+        curr.asset_price,
+        curr.leveraged_price,
+    ))
 }
 
-pub fn unleveraged_equivalence(_deps: &Deps, leveraged_count: Uint128) -> Uint128 {
-    leveraged_count
+pub fn unleveraged_equivalence(
+    deps: &Deps,
+    env: &Env,
+    asset_count: Uint128
+) -> Result<Uint128, ContractError> {
+    let curr = get_price_context(deps, env, deps.querier)?.current_snapshot;
+    Ok(asset_count.multiply_ratio(
+        curr.leveraged_price,
+        curr.asset_price,
+    ))
 }
 
 pub fn calculate_pr(total_assets: Uint128, total_leveraged_assets: Uint128) 
