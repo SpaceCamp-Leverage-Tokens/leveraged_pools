@@ -103,7 +103,8 @@ pub enum QueryMsg {
     PoolState { },
     AllPoolInfo { },
     PriceHistory { },
-    LiquidityPosition { address: Addr }
+    LiquidityPosition { address: Addr },
+    LeveragedPosition { address: Addr }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -114,6 +115,11 @@ pub struct PriceHistoryResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct LiquidityPositionResponse {
     pub position: ProviderPosition,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct LeveragedPositionResponse {
+    pub position: MinterPosition,
 }
 
 /**

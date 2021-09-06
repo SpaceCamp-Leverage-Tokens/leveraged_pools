@@ -106,11 +106,10 @@ pub fn create_leveraged_position(
     MINTSTATE.save(storage, &sender, &new_mint_count)?;
 
 
+    state.assets_in_reserve += unleveraged_assets;
     state.total_leveraged_assets += mint_count;
     state.total_leveraged_pool_share += mint_count;
 
-    state.assets_in_reserve += unleveraged_assets;
-    state.total_asset_pool_share += unleveraged_assets;
     POOLSTATE.save(storage, &state)?;
 
     Ok(MinterPosition {
@@ -186,6 +185,24 @@ pub fn get_mint_map(deps: &DepsMut, addr:Addr) -> StdResult<MinterPosition> {
         leveraged_pool_total_share: total_share,
     };
     return Ok(my_position)
+}
+
+/**
+ * Find the leveraged position (if any) held by addr
+ */
+pub fn get_leveraged_position(deps: &Deps, addr:&Addr) -> StdResult<MinterPosition> {
+    let leveraged_pool_partial_share = match MINTSTATE.load(deps.storage, addr) {
+        Ok(pos) => { pos },
+        Err(_) => { Uint128::zero() },
+    };
+
+    let pool_state = query_pool_state(&deps)?;
+    let leveraged_pool_total_share = pool_state.total_leveraged_assets;
+
+    Ok(MinterPosition {
+        leveraged_pool_partial_share,
+        leveraged_pool_total_share,
+    })
 }
 
 /***

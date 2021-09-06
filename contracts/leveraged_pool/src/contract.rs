@@ -8,7 +8,7 @@ use leveraged_pools::pool::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
     PoolStateResponse , AllPoolInfoResponse,Cw20HookMsg,
     PriceHistoryResponse,ProvideLiquidityMsg, LiquidityPositionResponse,
-    TryMint};
+    TryMint, LeveragedPositionResponse };
 use crate::{leverage_man,liquid_man,mint_man};
 use cw20::{Cw20ReceiveMsg};
 
@@ -169,7 +169,16 @@ fn query_price_history(deps: Deps) -> StdResult<PriceHistoryResponse> {
 }
 
 /**
- * QueryMsg::PriceHistory
+ * QueryMsg::LeveragedPosition
+ */
+fn query_addr_leveraged_position(deps: Deps, address:Addr) -> StdResult<LeveragedPositionResponse> {
+    Ok(LeveragedPositionResponse {
+        position: leverage_man::get_leveraged_position(&deps, &address)?,
+    })
+}
+
+/**
+ * QueryMsg::LiquidityPosition
  */
 fn query_addr_liquidity_position(deps: Deps, address:Addr) -> StdResult<LiquidityPositionResponse> {
     Ok(LiquidityPositionResponse {
@@ -214,6 +223,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         QueryMsg::AllPoolInfo { } => to_binary(&query_all_pool_info(deps,&env, deps.querier)?),
         QueryMsg::PriceHistory { } => to_binary(&query_price_history(deps)?),
         QueryMsg::LiquidityPosition { address } => to_binary(&query_addr_liquidity_position(deps, address)?),
+        QueryMsg::LeveragedPosition { address } => to_binary(&query_addr_leveraged_position(deps, address)?),
     }
 }
 

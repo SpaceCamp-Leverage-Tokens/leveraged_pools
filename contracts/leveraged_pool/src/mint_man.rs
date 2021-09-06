@@ -41,7 +41,6 @@ pub fn execute_mint_leveraged(
     )
 }
 
-
 pub fn execute_burn_leveraged(
 ) -> Result<MinterPosition, ContractError> {
     Err(ContractError::Unimplemented{ })
