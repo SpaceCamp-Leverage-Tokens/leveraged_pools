@@ -37,23 +37,19 @@
     {
       "type": "object",
       "required": [
-        "mint_leveraged_asset"
-      ],
-      "properties": {
-        "mint_leveraged_asset": {
-          "type": "object"
-        }
-      },
-      "additionalProperties": false
-    },
-    {
-      "type": "object",
-      "required": [
         "burn_leveraged_asset"
       ],
       "properties": {
         "burn_leveraged_asset": {
-          "type": "object"
+          "type": "object",
+          "required": [
+            "share_of_pool"
+          ],
+          "properties": {
+            "share_of_pool": {
+              "$ref": "#/definitions/Uint128"
+            }
+          }
         }
       },
       "additionalProperties": false

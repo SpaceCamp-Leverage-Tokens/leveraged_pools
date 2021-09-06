@@ -8,7 +8,7 @@ use leveraged_pools::pool::{
     ExecuteMsg, InstantiateMsg, QueryMsg, HyperparametersResponse,
     PoolStateResponse , AllPoolInfoResponse,Cw20HookMsg,
     PriceHistoryResponse,ProvideLiquidityMsg, LiquidityPositionResponse,
-    TryMint, LeveragedPositionResponse };
+    TryMint, TryBurn, LeveragedPositionResponse };
 use crate::{leverage_man,liquid_man,mint_man};
 use cw20::{Cw20ReceiveMsg};
 
@@ -43,12 +43,7 @@ pub fn execute(
     match msg {
         ExecuteMsg::Receive(msg) => receive_cw20(deps, env, info, msg),
         ExecuteMsg::WithdrawLiquidity { share_of_pool } => execute_withdraw_liquidity(deps, info, env, share_of_pool),
-        /*
-         * TODO
-         * MintLeveragedAsset { }
-         * BurnLeveragedAsset { }
-         * SetDailyLeverageReference { }
-         */
+        ExecuteMsg::BurnLeveragedAsset { share_of_pool } => execute_burn_leveraged(deps, info, env, share_of_pool),
 
         _ => { Err(ContractError::InvalidPoolParams { }) },
     }
@@ -78,12 +73,26 @@ pub fn receive_cw20(
             execute_mint_leveraged(deps, info, &env, &cw20_msg)?;
             return Ok(Response::new())
         }
-        Ok(Cw20HookMsg::BurnLeveragedPosition {}) => {
-            /* TODO */
-            return Ok(Response::new())
-        }
         Err(err) => Err(ContractError::Std(err)),
     }
+}
+
+/**
+ * ExecuteMsg::BurnLeveragedAsset
+ */
+pub fn execute_burn_leveraged(
+    deps: DepsMut,
+    info: MessageInfo,
+    env: Env,
+    pool_share: Uint128,
+) -> Result<Response, ContractError> {
+
+    mint_man::execute_burn_leveraged(deps, &info, &env, &TryBurn {
+        sender: info.sender.clone(),
+        pool_share,
+    })?;
+
+    Ok(Response::new())
 }
 
 fn execute_mint_leveraged(
@@ -100,7 +109,7 @@ fn execute_mint_leveraged(
     }
 
     mint_man::execute_mint_leveraged(
-        deps, info, &env, &TryMint {
+        deps, &info, &env, &TryMint {
             sender,
             amount,
         })?;
@@ -195,7 +204,7 @@ fn query_pool_state(deps: Deps) -> StdResult<PoolStateResponse> {
     Ok(PoolStateResponse{
         opening_snapshot: pool_state.latest_reset_snapshot,
         assets_in_reserve: pool_state.assets_in_reserve,
-        total_leveraged_assets: pool_state.total_leveraged_assets,
+        total_leveraged_assets: pool_state.total_leveraged_pool_share,
         total_asset_pool_share: pool_state.total_asset_pool_share,
         total_leveraged_pool_share: pool_state.total_leveraged_pool_share,
     })

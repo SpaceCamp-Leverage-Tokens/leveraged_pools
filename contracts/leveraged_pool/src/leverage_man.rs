@@ -105,10 +105,8 @@ pub fn create_leveraged_position(
 
     MINTSTATE.save(storage, &sender, &new_mint_count)?;
 
-
     state.assets_in_reserve += unleveraged_assets;
     state.total_leveraged_assets += mint_count;
-    state.total_leveraged_pool_share += mint_count;
 
     POOLSTATE.save(storage, &state)?;
 
@@ -118,8 +116,37 @@ pub fn create_leveraged_position(
     })
 }
 
+pub fn burn_leveraged_position(
+    storage: &mut dyn Storage,
+    sender: &Addr,
+    burn: Uint128,
+    redeem: Uint128,
+) -> Result<MinterPosition, ContractError> {
+    let mut pool_state = POOLSTATE.load(storage)?;
+    let mut curr_pos = match MINTSTATE.load(storage, &sender) {
+        Ok(curr_mint) => { MinterPosition {
+            leveraged_pool_partial_share: curr_mint,
+            leveraged_pool_total_share: pool_state.total_leveraged_pool_share,
+        } },
+        _ => { return Err(ContractError::InsufficientFunds{ }) },
+    };
+
+    pool_state.assets_in_reserve -= redeem;
+    curr_pos.leveraged_pool_partial_share -= burn;
+    curr_pos.leveraged_pool_total_share -= burn;
+
+    MINTSTATE.save(storage, sender, &curr_pos.leveraged_pool_partial_share)?;
+    POOLSTATE.save(storage, &pool_state)?;
+
+    Ok(curr_pos)
+}
+
 pub fn leveraged_equivalence(_deps: &Deps, asset_count: Uint128) -> Uint128 {
     asset_count
+}
+
+pub fn unleveraged_equivalence(_deps: &Deps, leveraged_count: Uint128) -> Uint128 {
+    leveraged_count
 }
 
 pub fn calculate_pr(total_assets: Uint128, total_leveraged_assets: Uint128) 
@@ -185,6 +212,17 @@ pub fn get_mint_map(deps: &DepsMut, addr:Addr) -> StdResult<MinterPosition> {
         leveraged_pool_total_share: total_share,
     };
     return Ok(my_position)
+}
+
+pub fn addr_has_adequate_leveraged_share(
+    deps: &Deps,
+    addr: &Addr,
+    check: Uint128
+) -> bool {
+    match MINTSTATE.load(deps.storage, addr) {
+        Ok(partial) => { partial > check },
+        Err(_) => { false },
+    }
 }
 
 /**
@@ -428,11 +466,6 @@ pub struct PoolState {
     pub assets_in_reserve: Uint128,
 
     /**
-     * Minted assets
-     */
-    pub total_leveraged_assets: Uint128,
-
-    /**
      * Total share of all assets
      *
      * TODO is this just assets_in_reserve?
@@ -441,8 +474,12 @@ pub struct PoolState {
 
     /**
      * Total share of all minted leveraged assets
-     *
-     * TODO is this just total_leveraged_assets?
+     * TODO remove in favor of total_leveraged_pool_share
+     */
+    pub total_leveraged_assets: Uint128,
+
+    /**
+     * Total share of all minted leveraged assets
      */
     pub total_leveraged_pool_share: Uint128,
 }

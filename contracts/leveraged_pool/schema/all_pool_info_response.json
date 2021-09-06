@@ -92,7 +92,7 @@
           ]
         },
         "total_leveraged_assets": {
-          "description": "Minted assets",
+          "description": "Minted assets TODO remove in favor of total_leveraged_pool_share",
           "allOf": [
             {
               "$ref": "#/definitions/Uint128"
@@ -100,7 +100,7 @@
           ]
         },
         "total_leveraged_pool_share": {
-          "description": "Total share of all minted leveraged assets\n\nTODO is this just total_leveraged_assets?",
+          "description": "Total share of all minted leveraged assets",
           "allOf": [
             {
               "$ref": "#/definitions/Uint128"

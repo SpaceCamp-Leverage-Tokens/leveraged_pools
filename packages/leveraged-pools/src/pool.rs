@@ -45,8 +45,7 @@ pub struct InstantiateMsg {
 pub enum ExecuteMsg {
     Receive(Cw20ReceiveMsg),
     WithdrawLiquidity { share_of_pool: Uint128 },
-    MintLeveragedAsset { },
-    BurnLeveragedAsset { },
+    BurnLeveragedAsset { share_of_pool: Uint128 },
     SetDailyLeverageReference { },
 }
 
@@ -60,12 +59,16 @@ pub enum Cw20HookMsg {
      * Absorb a CW20 and open a leveraged position
      */
     MintLeveragedPosition { },
-    BurnLeveragedPosition { },
 }
 
 pub struct TryMint {
     pub sender: Addr,
     pub amount: Uint128
+}
+
+pub struct TryBurn {
+    pub sender: Addr,
+    pub pool_share: Uint128
 }
 
 /**
@@ -154,6 +157,7 @@ pub struct PoolStateResponse {
 
     /**
      * Minted assets
+     * TODO remove in favor of total_leveraged_pool_share
      */
     pub total_leveraged_assets: Uint128,
 
@@ -166,8 +170,6 @@ pub struct PoolStateResponse {
 
     /**
      * Total share of all minted leveraged assets
-     *
-     * TODO is this just total_leveraged_assets?
      */
     pub total_leveraged_pool_share: Uint128,
 }

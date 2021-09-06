@@ -55,7 +55,7 @@ pub fn execute_withdraw_liquidity(
     let hyper_p = leverage_man::query_hyperparameters(&deps.as_ref())?;
 
     if requested_share_of_pool > provider_position.asset_pool_partial_share{
-        return Err(ContractError::InsuficientFunds{})
+        return Err(ContractError::InsufficientFunds{})
     }
 
     let mut pool_state = leverage_man::get_pool_state(&deps.as_ref())?;

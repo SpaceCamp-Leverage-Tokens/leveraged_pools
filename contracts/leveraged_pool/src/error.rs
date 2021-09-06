@@ -6,6 +6,10 @@ pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
 
+    #[error("Error in computing arithmetic result")]
+    /* TODO This is DivideByZero and Overflow and friends */
+    ArithmeticError { },
+
     #[error("Unimplemented")]
     Unimplemented {},
 
@@ -35,7 +39,7 @@ pub enum ContractError {
     InvalidPoolParams {},
 
     #[error("Insufficient Funds")]
-    InsuficientFunds {},
+    InsufficientFunds {},
 
     #[error("Action taken will lower Protocol Ratio lower than Rebalance Ratio")]
     InvalidPoolState {},
