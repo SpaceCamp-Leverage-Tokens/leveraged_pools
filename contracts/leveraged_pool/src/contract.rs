@@ -204,7 +204,7 @@ fn query_pool_state(deps: Deps) -> StdResult<PoolStateResponse> {
     Ok(PoolStateResponse{
         opening_snapshot: pool_state.latest_reset_snapshot,
         assets_in_reserve: pool_state.assets_in_reserve,
-        total_leveraged_assets: pool_state.total_leveraged_pool_share,
+        total_leveraged_assets: pool_state.total_leveraged_assets,
         total_asset_pool_share: pool_state.total_asset_pool_share,
         total_leveraged_pool_share: pool_state.total_leveraged_pool_share,
     })

@@ -106,6 +106,7 @@ pub fn create_leveraged_position(
     MINTSTATE.save(storage, &sender, &new_mint_count)?;
 
     state.assets_in_reserve += unleveraged_assets;
+    state.total_leveraged_pool_share += mint_count;
     state.total_leveraged_assets += mint_count;
 
     POOLSTATE.save(storage, &state)?;
@@ -132,6 +133,8 @@ pub fn burn_leveraged_position(
     };
 
     pool_state.assets_in_reserve -= redeem;
+    pool_state.total_leveraged_pool_share -= burn;
+    pool_state.total_leveraged_assets -= burn;
     curr_pos.leveraged_pool_partial_share -= burn;
     curr_pos.leveraged_pool_total_share -= burn;
 
@@ -151,7 +154,7 @@ pub fn unleveraged_equivalence(_deps: &Deps, leveraged_count: Uint128) -> Uint12
 
 pub fn calculate_pr(total_assets: Uint128, total_leveraged_assets: Uint128) 
 -> Uint128 {
-    total_assets / total_leveraged_assets
+    total_assets.checked_div(total_leveraged_assets).unwrap_or_default()
 }
 
 pub fn get_asset_addr(deps: &Deps) -> StdResult<Addr> {
@@ -225,17 +228,21 @@ pub fn addr_has_adequate_leveraged_share(
     }
 }
 
+pub fn get_addr_leveraged_share(deps: &Deps, addr: &Addr) -> Uint128 {
+    match MINTSTATE.load(deps.storage, addr) {
+        Ok(pos) => { pos },
+        Err(_) => { Uint128::zero() },
+    }
+}
+
 /**
  * Find the leveraged position (if any) held by addr
  */
 pub fn get_leveraged_position(deps: &Deps, addr:&Addr) -> StdResult<MinterPosition> {
-    let leveraged_pool_partial_share = match MINTSTATE.load(deps.storage, addr) {
-        Ok(pos) => { pos },
-        Err(_) => { Uint128::zero() },
-    };
+    let leveraged_pool_partial_share = get_addr_leveraged_share(&deps, &addr);
 
     let pool_state = query_pool_state(&deps)?;
-    let leveraged_pool_total_share = pool_state.total_leveraged_assets;
+    let leveraged_pool_total_share = pool_state.total_leveraged_pool_share;
 
     Ok(MinterPosition {
         leveraged_pool_partial_share,

@@ -49,6 +49,7 @@ pub fn execute_burn_leveraged(
 ) -> Result<MinterPosition, ContractError> {
     let state = leverage_man::query_pool_state(&deps.as_ref())?;
     let hyper_p = leverage_man::query_hyperparameters(&deps.as_ref())?;
+    let leverage_share = leverage_man::get_addr_leveraged_share(&deps.as_ref(), &proposed_burn.sender);
 
     let proposed_share = proposed_burn.pool_share;
 
@@ -60,11 +61,9 @@ pub fn execute_burn_leveraged(
         Err(ContractError::InsufficientFunds{ })?;
     }
 
-    let proposed_burn_units = proposed_share.checked_div(
-        state.total_leveraged_pool_share).or_else(
-            |_| Err(ContractError::ArithmeticError{ }))?.checked_mul(
-                state.total_leveraged_assets).or_else(
-                    |_| Err(ContractError::ArithmeticError{ }))?;
+    let proposed_burn_units = leverage_share.multiply_ratio(
+        proposed_share, state.total_leveraged_pool_share
+    );
 
     let proposed_redeem_units = leverage_man::unleveraged_equivalence(
         &deps.as_ref(),
@@ -73,7 +72,7 @@ pub fn execute_burn_leveraged(
 
     if leverage_man::calculate_pr(
         state.assets_in_reserve - proposed_redeem_units,
-        state.total_leveraged_assets - proposed_burn_units,
+        state.total_leveraged_pool_share - proposed_burn_units,
     ) < hyper_p.minimum_protocol_ratio {
         return Err(ContractError::WouldViolatePoolHealth{ });
     }
