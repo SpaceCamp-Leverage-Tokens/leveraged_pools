@@ -90,9 +90,7 @@ pub fn execute_burn_leveraged(
     mint_man::execute_burn_leveraged(deps, &info, &env, &TryBurn {
         sender: info.sender.clone(),
         pool_share,
-    })?;
-
-    Ok(Response::new())
+    })
 }
 
 fn execute_mint_leveraged(

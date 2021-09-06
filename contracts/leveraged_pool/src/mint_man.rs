@@ -5,8 +5,9 @@
  */
 
 use cosmwasm_std::{
-    DepsMut, MessageInfo, Env
+    DepsMut, MessageInfo, Env, CosmosMsg, WasmMsg, to_binary, Response
 };
+use cw20::Cw20ExecuteMsg;
 use crate::leverage_man;
 use leveraged_pools::pool::{TryMint, MinterPosition, TryBurn};
 
@@ -46,7 +47,7 @@ pub fn execute_burn_leveraged(
     _info: &MessageInfo,
     env: &Env,
     proposed_burn: &TryBurn,
-) -> Result<MinterPosition, ContractError> {
+) -> Result<Response, ContractError> {
     let state = leverage_man::query_pool_state(&deps.as_ref())?;
     let hyper_p = leverage_man::query_hyperparameters(&deps.as_ref())?;
     let leverage_share = leverage_man::get_addr_leveraged_share(&deps.as_ref(), &proposed_burn.sender);
@@ -81,5 +82,20 @@ pub fn execute_burn_leveraged(
         &proposed_burn.sender,
         proposed_burn_units,
         proposed_redeem_units,
-    )
+    )?;
+
+    /* TODO this is inappropriate here, should be in
+     * contract.rs, but I need the leveraged_asset_addr.
+     * Maybe could pass that back through MinterPosition */
+    let burn_msg = CosmosMsg::Wasm(WasmMsg::Execute {
+            contract_addr: deps.api.addr_humanize(&hyper_p.leveraged_asset_addr)?.to_string(),
+            funds: vec![],
+            msg: to_binary(&Cw20ExecuteMsg::Transfer {
+                recipient: proposed_burn.sender.to_string(),
+                amount: proposed_redeem_units,
+            })?,
+    });
+
+    Ok(Response::new().add_message(burn_msg))
+
 }
