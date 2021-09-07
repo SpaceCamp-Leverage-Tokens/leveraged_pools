@@ -22,6 +22,7 @@ pub fn instantiate(
     _info: MessageInfo,
     msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    /* TODO do mint_man and liquid_man really need to be init'd? */
     for init in [leverage_man::init] {
         init(&env, deps.storage, deps.api, deps.querier, &msg)?;
     }
@@ -49,6 +50,9 @@ pub fn execute(
     }
 }
 
+/**
+ * Unpack Cw20 messages
+ */
 pub fn receive_cw20(
     deps: DepsMut,
     env: Env,

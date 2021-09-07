@@ -13,6 +13,9 @@ use leveraged_pools::pool::{TryMint, MinterPosition, TryBurn};
 
 use crate::error::ContractError;
 
+/**
+ * Validate and mint the `proposed_mint` position
+ */
 pub fn execute_mint_leveraged(
     deps: DepsMut,
     _info: &MessageInfo,
@@ -42,6 +45,9 @@ pub fn execute_mint_leveraged(
     )
 }
 
+/**
+ * Validate and burn the `proposed_burn` leveraged position
+ */
 pub fn execute_burn_leveraged(
     deps: DepsMut,
     _info: &MessageInfo,
@@ -97,5 +103,4 @@ pub fn execute_burn_leveraged(
     });
 
     Ok(Response::new().add_message(burn_msg))
-
 }

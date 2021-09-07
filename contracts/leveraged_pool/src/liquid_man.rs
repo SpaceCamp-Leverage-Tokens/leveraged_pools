@@ -13,6 +13,9 @@ use crate::{leverage_man};
 
 use cw20::Cw20ExecuteMsg;
 
+/**
+ * Represent how much of the pool an LP has provided
+ */
 pub struct ProviderPosition {
     pub asset_pool_partial_share: Uint128,
     pub asset_pool_total_share: Uint128,

@@ -1,12 +1,8 @@
 /*
  * Leverage manager
  *
- * Maintains health of the pool by controlling what mint_man can mint and what
- * liquid_man can withdraw. Essentially an arbiter of truth with the final say
- * in who can do what.
- *
- * Additionally it maintains a history of price data for both the underlying
- * asset and for its leveraged token.
+ * Tracks underlying asset price history and computes the leveraged price by
+ * multiplying that price volatility by the leverage_amount.
  */
 use std::vec::Vec;
 use cosmwasm_std::{
@@ -19,6 +15,9 @@ use cw_storage_plus::{Item, Map};
 use serde::{Deserialize, Serialize};
 use leveraged_pools::pool::{InstantiateMsg, PriceSnapshot, ProviderPosition, MinterPosition, PriceContext};
 
+/**
+ * Initialize state
+ */
 pub fn init<'a>(
     env: &Env,
     storage: &mut dyn Storage,
@@ -89,6 +88,12 @@ pub fn init<'a>(
     Ok(())
 }
 
+/**
+ * Exchange a number of `unleveraged_assets` for their equivalent in leveraged
+ * assets. Track this change in MINTSTATE.
+ *
+ * Assumes the position was already approved by `mint_man`
+ */
 pub fn create_leveraged_position(
     storage: &mut dyn Storage,
     sender: &Addr,
@@ -117,6 +122,12 @@ pub fn create_leveraged_position(
     })
 }
 
+/**
+ * Exchange a leveraged position for its equivalent in unleveraged assets and
+ * send the result in Cw20 tokens back to the address that burned the position
+ *
+ * Assumes the burn was already approved by `mint_man`
+ */
 pub fn burn_leveraged_position(
     storage: &mut dyn Storage,
     sender: &Addr,
@@ -144,6 +155,10 @@ pub fn burn_leveraged_position(
     Ok(curr_pos)
 }
 
+/**
+ * Convert `asset_count` *unleveraged* assets to their leveraged equivalent
+ * based on the current price of both the underlying and its leveraged friend
+ */
 pub fn leveraged_equivalence(
     deps: &Deps,
     env: &Env,
@@ -156,6 +171,10 @@ pub fn leveraged_equivalence(
     ))
 }
 
+/**
+ * Convert `asset_count` *leveraged* assets to their unleveraged equivalent
+ * based on the current price of both the underlying and its leveraged friend
+ */
 pub fn unleveraged_equivalence(
     deps: &Deps,
     env: &Env,
@@ -168,11 +187,18 @@ pub fn unleveraged_equivalence(
     ))
 }
 
+/**
+ * Compute protocol ratio given total number of assets and the number of minted
+ * positions
+ */
 pub fn calculate_pr(total_assets: Uint128, total_leveraged_assets: Uint128) 
 -> Uint128 {
     total_assets.checked_div(total_leveraged_assets).unwrap_or_default()
 }
 
+/**
+ * Helper to get backing, unleveraged asset contract address
+ */
 pub fn get_asset_addr(deps: &Deps) -> StdResult<Addr> {
     Ok(deps.api.addr_humanize(&HYPERPARAMETERS.load(
         deps.storage)?.leveraged_asset_addr
@@ -212,7 +238,7 @@ pub fn get_pool_state(deps: &Deps) -> StdResult<PoolState> {
     POOLSTATE.load(deps.storage)
 }
 
-/***
+/**
  * Retrieves Current Minted Position
  */
 pub fn get_mint_map(deps: &DepsMut, addr:Addr) -> StdResult<MinterPosition> {
@@ -233,6 +259,9 @@ pub fn get_mint_map(deps: &DepsMut, addr:Addr) -> StdResult<MinterPosition> {
     return Ok(my_position)
 }
 
+/**
+ * Assert that `addr` has at least `check` leveraged assets
+ */
 pub fn addr_has_adequate_leveraged_share(
     deps: &Deps,
     addr: &Addr,
@@ -244,6 +273,9 @@ pub fn addr_has_adequate_leveraged_share(
     }
 }
 
+/**
+ * Get minter's leveraged position
+ */
 pub fn get_addr_leveraged_share(deps: &Deps, addr: &Addr) -> Uint128 {
     match MINTSTATE.load(deps.storage, addr) {
         Ok(pos) => { pos },
@@ -266,7 +298,7 @@ pub fn get_leveraged_position(deps: &Deps, addr:&Addr) -> StdResult<MinterPositi
     })
 }
 
-/***
+/**
  * Retrieves Current Liquidity Position
  */
 pub fn get_liquidity_position(deps: &Deps, addr:&Addr) -> StdResult<ProviderPosition> {
