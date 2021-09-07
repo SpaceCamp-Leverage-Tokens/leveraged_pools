@@ -1,11 +1,14 @@
 use cosmwasm_std::testing::{mock_env, mock_info};
-use cosmwasm_std::{coins, from_binary, to_binary, Addr, Uint128, Response};
+use cosmwasm_std::{
+    coins, from_binary, to_binary, Addr, Uint128, Response, CosmosMsg,
+    WasmMsg,
+};
 use leveraged_pools::pool::{
     InstantiateMsg, QueryMsg, HyperparametersResponse,
     PriceHistoryResponse, PoolStateResponse, ExecuteMsg,
-    Cw20HookMsg
+    Cw20HookMsg, LiquidityPositionResponse, ProviderPosition,
 };
-use cw20::{Cw20ReceiveMsg};
+use cw20::{Cw20ReceiveMsg, Cw20ExecuteMsg};
 use crate::contract::{instantiate, query, execute};
 use crate::testing::mock_querier::{mock_dependencies, OwnedMockDeps};
 
@@ -113,4 +116,82 @@ fn proper_lp() {
     let pool_state: PoolStateResponse = from_binary(&res).unwrap();
     assert_eq!(pool_state.assets_in_reserve, Uint128::new(100_000_000));
     assert_eq!(pool_state.total_asset_pool_share, Uint128::new(100_000_000));
+
+    /* Verify the pool recorded our position */
+    let bin = &query(deps.as_ref(), mock_env(), QueryMsg::LiquidityPosition {
+        address: Addr::unchecked("provider"),
+    }).unwrap();
+    let res: LiquidityPositionResponse = from_binary(&bin).unwrap();
+    let position: ProviderPosition = res.position;
+
+    /* We own the entire pool of course */
+    assert_eq!(position.asset_pool_total_share, Uint128::new(100_000_000));
+    assert_eq!(position.asset_pool_partial_share, Uint128::new(100_000_000));
+
+    /* Someone else provides 100 mTSLA as well */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "someone_else".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::ProvideLiquidity {
+        }).unwrap(),
+    });
+    execute(deps.as_mut(), mock_env(), mock_info(
+        "mTSLA", &[]), msg).unwrap();
+
+    /* Check our LP position after someone else deposits 100 mTSLA */
+    let bin = &query(deps.as_ref(), mock_env(), QueryMsg::LiquidityPosition {
+        address: Addr::unchecked("provider"),
+    }).unwrap();
+    let res: LiquidityPositionResponse = from_binary(&bin).unwrap();
+    let position: ProviderPosition = res.position;
+
+    /* Assert that we now only own half the pool */
+    assert_eq!(position.asset_pool_total_share, Uint128::new(200_000_000));
+    assert_eq!(position.asset_pool_partial_share, Uint128::new(100_000_000));
+
+    /* Attempt to withdraw our liquidity */
+    let msg = ExecuteMsg::WithdrawLiquidity {
+        share_of_pool: Uint128::new(100_000_000),
+    };
+    let res = execute(deps.as_mut(), mock_env(), mock_info(
+        "provider", &[]), msg).unwrap();
+
+    /* Extract Cw20ExecuteMsg::Transfer from response */
+    let (denom, receipt) = match &res.messages[0].msg {
+        CosmosMsg::Wasm(w) => match w {
+                WasmMsg::Execute{ contract_addr, msg, .. } =>
+                    (contract_addr, msg),
+                _ => panic!("Invalid WithdrawLiquidity response"),
+            },
+        _ => panic!("Invalid WithdrawLiquidity response"),
+    };
+    let receipt_msg: Cw20ExecuteMsg = from_binary(&receipt).unwrap();
+    let (recipient, amount) = match receipt_msg {
+        Cw20ExecuteMsg::Transfer{ recipient, amount } => (recipient, amount),
+        _ => panic!("Invalid WithdrawLiquidity response"),
+    };
+
+    /* Assert that we are credited our funds we withdrew from the pool */
+    assert_eq!(denom, "mTSLA");
+    assert_eq!(recipient, "provider");
+    assert_eq!(amount, Uint128::new(100_000_000));
+
+    /* Check our LP position after someone else deposits 100 mTSLA */
+    let bin = &query(deps.as_ref(), mock_env(), QueryMsg::LiquidityPosition {
+        address: Addr::unchecked("provider"),
+    }).unwrap();
+    let res: LiquidityPositionResponse = from_binary(&bin).unwrap();
+    let position: ProviderPosition = res.position;
+
+    /* Check that our LP share is zero */
+    assert_eq!(position.asset_pool_partial_share, Uint128::zero());
+    /* Assert other funds have not been touched */
+    assert_eq!(position.asset_pool_total_share, Uint128::new(100_000_000));
+
+    /* Verify pool state was updated after our withdrawal */
+    let res = query(deps.as_ref(), mock_env(), QueryMsg::PoolState{ }).unwrap();
+    let pool_state: PoolStateResponse = from_binary(&res).unwrap();
+    assert_eq!(pool_state.assets_in_reserve, Uint128::new(100_000_000));
+    assert_eq!(pool_state.total_asset_pool_share, Uint128::new(100_000_000));
+
 }
