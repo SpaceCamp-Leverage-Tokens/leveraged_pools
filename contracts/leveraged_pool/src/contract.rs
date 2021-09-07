@@ -59,6 +59,12 @@ pub fn receive_cw20(
     info: MessageInfo,
     cw20_msg: Cw20ReceiveMsg,
 ) -> Result<Response, ContractError> {
+
+    /* Ignore any Cw20s except the backing asset */
+    if !is_pooled_asset(&deps.as_ref(), &info.sender)? {
+        return Err(ContractError::WrongAssetLOL{ });
+    }
+
     match from_binary(&cw20_msg.msg) {
         Ok(Cw20HookMsg::ProvideLiquidity {}) => {
             // only asset contract can execute this message
@@ -105,10 +111,6 @@ fn execute_mint_leveraged(
 ) -> Result<Response, ContractError> {
     let sender = deps.api.addr_validate(&msg.sender)?;
     let amount = msg.amount;
-
-    if !is_pooled_asset(&deps.as_ref(), &info.sender)? {
-        return Err(ContractError::WrongAssetLOL{ });
-    }
 
     mint_man::execute_mint_leveraged(
         deps, &info, &env, &TryMint {
