@@ -6,8 +6,8 @@ pub mod swap;
 
 /* MAGI System */
 pub mod leverage_man;
-pub mod mint_man;
 pub mod liquid_man;
+pub mod mint_man;
 
 #[cfg(test)]
 mod testing;

@@ -1,7 +1,7 @@
+use cosmwasm_std::Addr;
+use leveraged_pools::pool::InstantiateMsg as PoolInstantiatMsg;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::Addr;
-use leveraged_pools::pool::{InstantiateMsg as PoolInstantiatMsg};
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct InstantiateMsg {
@@ -11,8 +11,10 @@ pub struct InstantiateMsg {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
-    CreateNewPool { pool_instantiate_msg: PoolInstantiatMsg },
-    BroadcastLeverageUpdate { },
+    CreateNewPool {
+        pool_instantiate_msg: PoolInstantiatMsg,
+    },
+    BroadcastLeverageUpdate {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]

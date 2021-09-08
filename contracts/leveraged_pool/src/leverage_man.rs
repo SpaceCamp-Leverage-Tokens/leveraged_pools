@@ -4,16 +4,19 @@
  * Tracks underlying asset price history and computes the leveraged price by
  * multiplying that price volatility by the leverage_amount.
  */
-use std::vec::Vec;
-use cosmwasm_std::{
-    Deps, DepsMut, Env, StdResult, Storage, CanonicalAddr, Api, QuerierWrapper, Uint128, Addr,
-    Response
-};
 use crate::error::ContractError;
 use crate::swap::TSLiason;
+use cosmwasm_std::{
+    Addr, Api, CanonicalAddr, Deps, DepsMut, Env, QuerierWrapper, Response,
+    StdResult, Storage, Uint128,
+};
 use cw_storage_plus::{Item, Map};
+use leveraged_pools::pool::{
+    InstantiateMsg, MinterPosition, PriceContext, PriceSnapshot,
+    ProviderPosition,
+};
 use serde::{Deserialize, Serialize};
-use leveraged_pools::pool::{InstantiateMsg, PriceSnapshot, ProviderPosition, MinterPosition, PriceContext};
+use std::vec::Vec;
 
 /**
  * Initialize state
@@ -26,28 +29,26 @@ pub fn init<'a>(
     msg: &InstantiateMsg,
 ) -> Result<(), ContractError> {
     /* Validate that terraswap pair address is at least valid */
-    let terraswap_pair_addr = api.addr_canonicalize(
-        &msg.terraswap_pair_addr,
-    ).or_else(|_| Err(ContractError::InvalidAddr { }))?;
+    let terraswap_pair_addr =
+        api.addr_canonicalize(&msg.terraswap_pair_addr)
+            .or_else(|_| Err(ContractError::InvalidAddr {}))?;
 
     /* Validate that leveraged asset address is at least valid */
-    let leveraged_asset_addr = api.addr_canonicalize(
-        &msg.leveraged_asset_addr,
-    ).or_else(|_| Err(ContractError::InvalidAddr { }))?;
+    let leveraged_asset_addr = api
+        .addr_canonicalize(&msg.leveraged_asset_addr)
+        .or_else(|_| Err(ContractError::InvalidAddr {}))?;
 
     /* Fetch current TS price */
     let liason: TSLiason = TSLiason::new_from_pair(
-        &api.addr_humanize(&terraswap_pair_addr).or_else(
-            |_| Err(ContractError::InvalidAddr { })
-        )?,
-        &api.addr_humanize(&leveraged_asset_addr).or_else(
-            |_| Err(ContractError::InvalidAddr { })
-        )?,
+        &api.addr_humanize(&terraswap_pair_addr)
+            .or_else(|_| Err(ContractError::InvalidAddr {}))?,
+        &api.addr_humanize(&leveraged_asset_addr)
+            .or_else(|_| Err(ContractError::InvalidAddr {}))?,
     );
 
     /* Set hyperparameters from inputs */
     let hyper_p = Hyperparameters {
-        leverage_amount:msg.leverage_amount,
+        leverage_amount: msg.leverage_amount,
         minimum_protocol_ratio: msg.minimum_protocol_ratio,
         rebalance_ratio: msg.rebalance_ratio,
         mint_premium: msg.mint_premium,
@@ -56,8 +57,8 @@ pub fn init<'a>(
         leveraged_asset_addr,
     };
 
-    if hyperparameters_is_valid(&hyper_p){
-        return Err(ContractError::InvalidPoolParams {})
+    if hyperparameters_is_valid(&hyper_p) {
+        return Err(ContractError::InvalidPoolParams {});
     }
 
     /* TODO I don't really care about TSPricePoint.timestamp, refactor maybe */
@@ -82,7 +83,7 @@ pub fn init<'a>(
      * console */
     HYPERPARAMETERS.save(storage, &hyper_p)?;
     POOLSTATE.save(storage, &init_state)?;
-    PRICE_DATA.save(storage, &vec!(genesis_snapshot))?;
+    PRICE_DATA.save(storage, &vec![genesis_snapshot])?;
     // LIQUIDITYSTATE.save(storage, )
 
     Ok(())
@@ -102,8 +103,8 @@ pub fn create_leveraged_position(
 ) -> Result<MinterPosition, ContractError> {
     let mut state = POOLSTATE.load(storage)?;
     let already_minted = match MINTSTATE.load(storage, &sender) {
-        Ok(mint) => { mint },
-        _ => { Uint128::zero() },
+        Ok(mint) => mint,
+        _ => Uint128::zero(),
     };
 
     let new_mint_count = already_minted + mint_count;
@@ -136,11 +137,11 @@ pub fn burn_leveraged_position(
 ) -> Result<MinterPosition, ContractError> {
     let mut pool_state = POOLSTATE.load(storage)?;
     let mut curr_pos = match MINTSTATE.load(storage, &sender) {
-        Ok(curr_mint) => { MinterPosition {
+        Ok(curr_mint) => MinterPosition {
             leveraged_pool_partial_share: curr_mint,
             leveraged_pool_total_share: pool_state.total_leveraged_pool_share,
-        } },
-        _ => { return Err(ContractError::InsufficientFunds{ }) },
+        },
+        _ => return Err(ContractError::InsufficientFunds {}),
     };
 
     pool_state.assets_in_reserve -= redeem;
@@ -162,13 +163,10 @@ pub fn burn_leveraged_position(
 pub fn leveraged_equivalence(
     deps: &Deps,
     env: &Env,
-    asset_count: Uint128
+    asset_count: Uint128,
 ) -> Result<Uint128, ContractError> {
     let curr = get_price_context(deps, env, deps.querier)?.current_snapshot;
-    Ok(asset_count.multiply_ratio(
-        curr.asset_price,
-        curr.leveraged_price,
-    ))
+    Ok(asset_count.multiply_ratio(curr.asset_price, curr.leveraged_price))
 }
 
 /**
@@ -178,30 +176,31 @@ pub fn leveraged_equivalence(
 pub fn unleveraged_equivalence(
     deps: &Deps,
     env: &Env,
-    asset_count: Uint128
+    asset_count: Uint128,
 ) -> Result<Uint128, ContractError> {
     let curr = get_price_context(deps, env, deps.querier)?.current_snapshot;
-    Ok(asset_count.multiply_ratio(
-        curr.leveraged_price,
-        curr.asset_price,
-    ))
+    Ok(asset_count.multiply_ratio(curr.leveraged_price, curr.asset_price))
 }
 
 /**
  * Compute protocol ratio given total number of assets and the number of minted
  * positions
  */
-pub fn calculate_pr(total_assets: Uint128, total_leveraged_assets: Uint128) 
--> Uint128 {
-    total_assets.checked_div(total_leveraged_assets).unwrap_or_default()
+pub fn calculate_pr(
+    total_assets: Uint128,
+    total_leveraged_assets: Uint128,
+) -> Uint128 {
+    total_assets
+        .checked_div(total_leveraged_assets)
+        .unwrap_or_default()
 }
 
 /**
  * Helper to get backing, unleveraged asset contract address
  */
 pub fn get_asset_addr(deps: &Deps) -> StdResult<Addr> {
-    Ok(deps.api.addr_humanize(&HYPERPARAMETERS.load(
-        deps.storage)?.leveraged_asset_addr
+    Ok(deps.api.addr_humanize(
+        &HYPERPARAMETERS.load(deps.storage)?.leveraged_asset_addr,
     )?)
 }
 
@@ -221,12 +220,19 @@ fn price_history(storage: &dyn Storage) -> Vec<PriceSnapshot> {
     PRICE_DATA.load(storage).unwrap_or(Vec::new())
 }
 
-pub fn update_pool_state(storage: &mut dyn Storage, new_pool_state: PoolState) -> Result<Response, ContractError> {
+pub fn update_pool_state(
+    storage: &mut dyn Storage,
+    new_pool_state: PoolState,
+) -> Result<Response, ContractError> {
     POOLSTATE.save(storage, &new_pool_state)?;
     Ok(Response::new())
 }
 
-pub fn update_pool_share(storage: &mut dyn Storage, user_addr:&Addr, user_shares: &Uint128) -> Result<Response, ContractError> {
+pub fn update_pool_share(
+    storage: &mut dyn Storage,
+    user_addr: &Addr,
+    user_shares: &Uint128,
+) -> Result<Response, ContractError> {
     LIQUIDITYSTATE.save(storage, user_addr, user_shares)?;
     Ok(Response::new())
 }
@@ -241,7 +247,7 @@ pub fn get_pool_state(deps: &Deps) -> StdResult<PoolState> {
 /**
  * Retrieves Current Minted Position
  */
-pub fn get_mint_map(deps: &DepsMut, addr:Addr) -> StdResult<MinterPosition> {
+pub fn get_mint_map(deps: &DepsMut, addr: Addr) -> StdResult<MinterPosition> {
     let currently_in_pool = MINTSTATE.has(deps.storage, &addr);
     let mut my_partial_share = Uint128::new(0); //if no position currently open in the pool
 
@@ -256,7 +262,7 @@ pub fn get_mint_map(deps: &DepsMut, addr:Addr) -> StdResult<MinterPosition> {
         leveraged_pool_partial_share: my_partial_share,
         leveraged_pool_total_share: total_share,
     };
-    return Ok(my_position)
+    return Ok(my_position);
 }
 
 /**
@@ -265,11 +271,11 @@ pub fn get_mint_map(deps: &DepsMut, addr:Addr) -> StdResult<MinterPosition> {
 pub fn addr_has_adequate_leveraged_share(
     deps: &Deps,
     addr: &Addr,
-    check: Uint128
+    check: Uint128,
 ) -> bool {
     match MINTSTATE.load(deps.storage, addr) {
-        Ok(partial) => { partial > check },
-        Err(_) => { false },
+        Ok(partial) => partial > check,
+        Err(_) => false,
     }
 }
 
@@ -278,15 +284,18 @@ pub fn addr_has_adequate_leveraged_share(
  */
 pub fn get_addr_leveraged_share(deps: &Deps, addr: &Addr) -> Uint128 {
     match MINTSTATE.load(deps.storage, addr) {
-        Ok(pos) => { pos },
-        Err(_) => { Uint128::zero() },
+        Ok(pos) => pos,
+        Err(_) => Uint128::zero(),
     }
 }
 
 /**
  * Find the leveraged position (if any) held by addr
  */
-pub fn get_leveraged_position(deps: &Deps, addr:&Addr) -> StdResult<MinterPosition> {
+pub fn get_leveraged_position(
+    deps: &Deps,
+    addr: &Addr,
+) -> StdResult<MinterPosition> {
     let leveraged_pool_partial_share = get_addr_leveraged_share(&deps, &addr);
 
     let pool_state = query_pool_state(&deps)?;
@@ -301,29 +310,35 @@ pub fn get_leveraged_position(deps: &Deps, addr:&Addr) -> StdResult<MinterPositi
 /**
  * Retrieves Current Liquidity Position
  */
-pub fn get_liquidity_position(deps: &Deps, addr:&Addr) -> StdResult<ProviderPosition> {
+pub fn get_liquidity_position(
+    deps: &Deps,
+    addr: &Addr,
+) -> StdResult<ProviderPosition> {
     let mut my_partial_share = Uint128::new(0); //if no position currently open in the pool
 
-    if LIQUIDITYSTATE.has(deps.storage, addr){
+    if LIQUIDITYSTATE.has(deps.storage, addr) {
         my_partial_share = LIQUIDITYSTATE.load(deps.storage, addr)?;
     }
 
     let pool_state = POOLSTATE.load(deps.storage)?;
     let total_share = pool_state.total_asset_pool_share;
 
-    let my_position = ProviderPosition{
+    let my_position = ProviderPosition {
         asset_pool_partial_share: my_partial_share,
         asset_pool_total_share: total_share,
     };
-    return Ok(my_position)
+    return Ok(my_position);
 }
 
 /**
  * Retrieves snapshot of the opening prices + calcualtes the snapshot of the current up-to-date TS price snapshot
  * with leveraged price
  */
-pub fn get_price_context(deps: &Deps, env:&Env, querier: QuerierWrapper) -> StdResult<PriceContext>{
-
+pub fn get_price_context(
+    deps: &Deps,
+    env: &Env,
+    querier: QuerierWrapper,
+) -> StdResult<PriceContext> {
     let hyper_p = HYPERPARAMETERS.load(deps.storage)?;
     let pool_state = POOLSTATE.load(deps.storage)?;
 
@@ -332,11 +347,16 @@ pub fn get_price_context(deps: &Deps, env:&Env, querier: QuerierWrapper) -> StdR
         &deps.api.addr_humanize(&hyper_p.leveraged_asset_addr)?,
     );
     let opening_asset_price = pool_state.latest_reset_snapshot.asset_price;
-    let opening_leveraged_price = pool_state.latest_reset_snapshot.leveraged_price;
+    let opening_leveraged_price =
+        pool_state.latest_reset_snapshot.leveraged_price;
 
     let current_asset_price_ts_point = liason.fetch_ts_price(&env, querier)?;
-    let current_leveraged_price = get_leveraged_price(opening_asset_price, current_asset_price_ts_point.u_price, 
-        hyper_p.leverage_amount, opening_leveraged_price);
+    let current_leveraged_price = get_leveraged_price(
+        opening_asset_price,
+        current_asset_price_ts_point.u_price,
+        hyper_p.leverage_amount,
+        opening_leveraged_price,
+    );
 
     let current_snapshot = PriceSnapshot {
         asset_price: current_asset_price_ts_point.u_price,
@@ -344,7 +364,7 @@ pub fn get_price_context(deps: &Deps, env:&Env, querier: QuerierWrapper) -> StdR
         timestamp: env.block.time.seconds(),
     };
 
-    let context_snapshots = PriceContext{
+    let context_snapshots = PriceContext {
         opening_snapshot: pool_state.latest_reset_snapshot,
         current_snapshot: current_snapshot,
     };
@@ -355,57 +375,70 @@ pub fn get_price_context(deps: &Deps, env:&Env, querier: QuerierWrapper) -> StdR
 /**
  * Inputs the opening price, leveraged amount, etc to calculate the current leveraged price
  */
-fn get_leveraged_price(start_asset_price:Uint128, current_asset_price:Uint128,
-     leverage_amount:Uint128, starting_leverage_price: Uint128) -> Uint128{
-        // If no change
-        if start_asset_price == current_asset_price{
-            return starting_leverage_price
-        }
+fn get_leveraged_price(
+    start_asset_price: Uint128,
+    current_asset_price: Uint128,
+    leverage_amount: Uint128,
+    starting_leverage_price: Uint128,
+) -> Uint128 {
+    // If no change
+    if start_asset_price == current_asset_price {
+        return starting_leverage_price;
+    }
 
-        // If asset increases in value
-        if start_asset_price < current_asset_price{
-            let absolute_change = current_asset_price - start_asset_price;
-            let percent_change = Uint128::new(1_000_000).saturating_mul(absolute_change)/start_asset_price;
-            let leverage_percent_change = Uint128::new(1_000_000)+leverage_amount.saturating_mul(percent_change)/Uint128::new(1_000_000);
-            
-            let current_leveraged_price = starting_leverage_price.saturating_mul(leverage_percent_change)/Uint128::new(1_000_000);
-            return current_leveraged_price
-        }   
-        
-        // If asset decreases in value
-        if start_asset_price > current_asset_price{
-            let absolute_change = start_asset_price - current_asset_price;
-            let percent_change = Uint128::new(1_000_000).saturating_mul(absolute_change)/start_asset_price;
-            let leverage_percent_change = Uint128::new(1_000_000)-leverage_amount.saturating_mul(percent_change)/Uint128::new(1_000_000);
-            
-            let current_leveraged_price = starting_leverage_price.saturating_mul(leverage_percent_change)/Uint128::new(1_000_000);
-            return current_leveraged_price
-        }
+    // If asset increases in value
+    if start_asset_price < current_asset_price {
+        let absolute_change = current_asset_price - start_asset_price;
+        let percent_change = Uint128::new(1_000_000)
+            .saturating_mul(absolute_change)
+            / start_asset_price;
+        let leverage_percent_change = Uint128::new(1_000_000)
+            + leverage_amount.saturating_mul(percent_change)
+                / Uint128::new(1_000_000);
 
-        return Uint128::new(1_000_000)
-        
+        let current_leveraged_price = starting_leverage_price
+            .saturating_mul(leverage_percent_change)
+            / Uint128::new(1_000_000);
+        return current_leveraged_price;
+    }
+
+    // If asset decreases in value
+    if start_asset_price > current_asset_price {
+        let absolute_change = start_asset_price - current_asset_price;
+        let percent_change = Uint128::new(1_000_000)
+            .saturating_mul(absolute_change)
+            / start_asset_price;
+        let leverage_percent_change = Uint128::new(1_000_000)
+            - leverage_amount.saturating_mul(percent_change)
+                / Uint128::new(1_000_000);
+
+        let current_leveraged_price = starting_leverage_price
+            .saturating_mul(leverage_percent_change)
+            / Uint128::new(1_000_000);
+        return current_leveraged_price;
+    }
+
+    return Uint128::new(1_000_000);
 }
-
 
 /**
  * Checks for valid hyperparameters
  */
-fn hyperparameters_is_valid(hyperparms:&Hyperparameters) -> bool {
-    if hyperparms.minimum_protocol_ratio > hyperparms.rebalance_premium{
-        return false
+fn hyperparameters_is_valid(hyperparms: &Hyperparameters) -> bool {
+    if hyperparms.minimum_protocol_ratio > hyperparms.rebalance_premium {
+        return false;
     }
-    if hyperparms.mint_premium > Uint128::new(1_000_000){
-        return false
+    if hyperparms.mint_premium > Uint128::new(1_000_000) {
+        return false;
     }
     if hyperparms.rebalance_premium > Uint128::new(0_100_000) {
-        return false
+        return false;
     }
-    if hyperparms.leverage_amount < Uint128::new(1_000_000){
-        return false
+    if hyperparms.leverage_amount < Uint128::new(1_000_000) {
+        return false;
     }
-    return true
+    return true;
 }
-
 
 /*
  * Snapshot of the price right at this exact second
@@ -455,8 +488,6 @@ pub struct Hyperparameters {
     pub leveraged_asset_addr: CanonicalAddr,
 }
 
-
-
 /**
  * Fetch a new price about every 15 minutes
  * TODO Use
@@ -486,7 +517,8 @@ pub const MINTSTATE: Map<&Addr, Uint128> = Map::new("minted_partial_shares");
 /**
  * Tracking minted leveraged assets and their unleveraged friends
  */
-pub const LIQUIDITYSTATE: Map<&Addr, Uint128> = Map::new("liquidity_partial_shares");
+pub const LIQUIDITYSTATE: Map<&Addr, Uint128> =
+    Map::new("liquidity_partial_shares");
 /**
  * Historic price data
  */
@@ -549,23 +581,38 @@ mod tests {
         let end_price = Uint128::new(1_500_000);
         let leverage_amount = Uint128::new(2_000_000);
         let leverage_start_price = Uint128::new(1_000_000);
-        let leverage_end_price = get_leveraged_price(starting_price, end_price, leverage_amount, leverage_start_price);
-        assert_eq!(Uint128::new(2_000_000),leverage_end_price);
+        let leverage_end_price = get_leveraged_price(
+            starting_price,
+            end_price,
+            leverage_amount,
+            leverage_start_price,
+        );
+        assert_eq!(Uint128::new(2_000_000), leverage_end_price);
 
-        // Testing price constant 
+        // Testing price constant
         let starting_price = Uint128::new(1_000_000);
         let end_price = Uint128::new(1_500_000);
         let leverage_amount = Uint128::new(3_000_000);
         let leverage_start_price = Uint128::new(1_000_000);
-        let leverage_end_price = get_leveraged_price(starting_price, end_price, leverage_amount, leverage_start_price);
-        assert_eq!(Uint128::new(2_500_000),leverage_end_price);
+        let leverage_end_price = get_leveraged_price(
+            starting_price,
+            end_price,
+            leverage_amount,
+            leverage_start_price,
+        );
+        assert_eq!(Uint128::new(2_500_000), leverage_end_price);
 
-        // Testing 10% decrease in price with 3x leverage 
+        // Testing 10% decrease in price with 3x leverage
         let starting_price = Uint128::new(1_000_000);
         let end_price = Uint128::new(0_900_000);
         let leverage_amount = Uint128::new(3_000_000);
         let leverage_start_price = Uint128::new(1_000_000);
-        let leverage_end_price = get_leveraged_price(starting_price, end_price, leverage_amount, leverage_start_price);
-        assert_eq!(Uint128::new(0_700_000),leverage_end_price);
+        let leverage_end_price = get_leveraged_price(
+            starting_price,
+            end_price,
+            leverage_amount,
+            leverage_start_price,
+        );
+        assert_eq!(Uint128::new(0_700_000), leverage_end_price);
     }
 }

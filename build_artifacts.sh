@@ -26,3 +26,10 @@ docker run --rm -v "$(pwd)":/code \
 	--mount type=volume,source=registry_cache,target=/usr/local/cargo/registry \
 	cosmwasm/workspace-optimizer:0.11.4
 
+cargo fmt -- --check
+if [[ $? -ne 0 ]]; then
+	echo '*** Code was not linted with rustfmt ***'
+	echo '*** Please run `cargo fmt` if you are planning to commit ***'
+	exit 1
+fi
+

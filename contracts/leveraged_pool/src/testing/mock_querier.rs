@@ -10,10 +10,13 @@
  */
 
 use cosmwasm_bignumber::{Decimal256, Uint256};
-use cosmwasm_std::testing::{MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR};
+use cosmwasm_std::testing::{
+    MockApi, MockQuerier, MockStorage, MOCK_CONTRACT_ADDR,
+};
 use cosmwasm_std::{
-    from_binary, from_slice, to_binary, Coin, ContractResult, OwnedDeps, Querier,
-    QuerierResult, QueryRequest, SystemError, SystemResult, Uint128, WasmQuery,
+    from_binary, from_slice, to_binary, Coin, ContractResult, OwnedDeps,
+    Querier, QuerierResult, QueryRequest, SystemError, SystemResult, Uint128,
+    WasmQuery,
 };
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
@@ -30,8 +33,9 @@ pub type OwnedMockDeps = OwnedDeps<MockStorage, MockApi, WasmMockQuerier>;
 pub fn mock_dependencies(
     contract_balance: &[Coin],
 ) -> OwnedDeps<MockStorage, MockApi, WasmMockQuerier> {
-    let custom_querier: WasmMockQuerier =
-        WasmMockQuerier::new(MockQuerier::new(&[(MOCK_CONTRACT_ADDR, contract_balance)]));
+    let custom_querier: WasmMockQuerier = WasmMockQuerier::new(
+        MockQuerier::new(&[(MOCK_CONTRACT_ADDR, contract_balance)]),
+    );
 
     OwnedDeps {
         api: MockApi::default(),
@@ -52,7 +56,9 @@ pub struct TerraswapPoolsQuerier {
 
 impl TerraswapPoolsQuerier {
     #[allow(clippy::type_complexity)]
-    pub fn new(pools: &[(&String, (&String, &Uint128, &String, &Uint128))]) -> Self {
+    pub fn new(
+        pools: &[(&String, (&String, &Uint128, &String, &Uint128))],
+    ) -> Self {
         TerraswapPoolsQuerier {
             pools: pools_to_map(pools),
         }
@@ -63,7 +69,8 @@ impl TerraswapPoolsQuerier {
 pub(crate) fn pools_to_map(
     pools: &[(&String, (&String, &Uint128, &String, &Uint128))],
 ) -> HashMap<String, (String, Uint128, String, Uint128)> {
-    let mut pools_map: HashMap<String, (String, Uint128, String, Uint128)> = HashMap::new();
+    let mut pools_map: HashMap<String, (String, Uint128, String, Uint128)> =
+        HashMap::new();
     for (key, pool) in pools.iter() {
         pools_map.insert(
             key.to_string(),
@@ -76,15 +83,16 @@ pub(crate) fn pools_to_map(
 impl Querier for WasmMockQuerier {
     fn raw_query(&self, bin_request: &[u8]) -> QuerierResult {
         // MockQuerier doesn't support Custom, so we ignore it completely here
-        let request: QueryRequest<TerraQueryWrapper> = match from_slice(bin_request) {
-            Ok(v) => v,
-            Err(e) => {
-                return SystemResult::Err(SystemError::InvalidRequest {
-                    error: format!("Parsing query request: {}", e),
-                    request: bin_request.into(),
-                })
-            }
-        };
+        let request: QueryRequest<TerraQueryWrapper> =
+            match from_slice(bin_request) {
+                Ok(v) => v,
+                Err(e) => {
+                    return SystemResult::Err(SystemError::InvalidRequest {
+                        error: format!("Parsing query request: {}", e),
+                        request: bin_request.into(),
+                    })
+                }
+            };
         self.handle_query(&request)
     }
 }
@@ -119,46 +127,60 @@ pub enum QueryMsg {
 }
 
 impl WasmMockQuerier {
-    pub fn handle_query(&self, request: &QueryRequest<TerraQueryWrapper>) -> QuerierResult {
+    pub fn handle_query(
+        &self,
+        request: &QueryRequest<TerraQueryWrapper>,
+    ) -> QuerierResult {
         match &request {
-            QueryRequest::Wasm(WasmQuery::Smart { contract_addr, msg }) => match from_binary(msg)
-                .unwrap()
-            {
-                QueryMsg::Pool {} => match self.terraswap_pools_querier.pools.get(contract_addr) {
-                    Some(v) => SystemResult::Ok(ContractResult::from(to_binary(&PoolResponse {
-                        assets: [
-                            Asset {
-                                amount: v.1,
-                                info: AssetInfo::NativeToken { denom: v.0.clone() },
-                            },
-                            Asset {
-                                amount: v.3,
-                                info: AssetInfo::Token {
-                                    contract_addr: v.2.to_string(),
-                                },
-                            },
-                        ],
-                        total_share: Uint128::zero(),
-                    }))),
-                    None => SystemResult::Err(SystemError::InvalidRequest {
-                        error: "No pair info exists".to_string(),
-                        request: msg.as_slice().into(),
-                    }),
-                },
-                QueryMsg::GetReferenceData { .. } => {
-                    SystemResult::Ok(ContractResult::from(to_binary(&ReferenceData {
-                        rate: Uint128::from(3465211050000000000000u128),
-                        last_updated_base: 100u64,
-                        last_updated_quote: 100u64,
-                    })))
+            QueryRequest::Wasm(WasmQuery::Smart { contract_addr, msg }) => {
+                match from_binary(msg).unwrap() {
+                    QueryMsg::Pool {} => match self
+                        .terraswap_pools_querier
+                        .pools
+                        .get(contract_addr)
+                    {
+                        Some(v) => SystemResult::Ok(ContractResult::from(
+                            to_binary(&PoolResponse {
+                                assets: [
+                                    Asset {
+                                        amount: v.1,
+                                        info: AssetInfo::NativeToken {
+                                            denom: v.0.clone(),
+                                        },
+                                    },
+                                    Asset {
+                                        amount: v.3,
+                                        info: AssetInfo::Token {
+                                            contract_addr: v.2.to_string(),
+                                        },
+                                    },
+                                ],
+                                total_share: Uint128::zero(),
+                            }),
+                        )),
+                        None => {
+                            SystemResult::Err(SystemError::InvalidRequest {
+                                error: "No pair info exists".to_string(),
+                                request: msg.as_slice().into(),
+                            })
+                        }
+                    },
+                    QueryMsg::GetReferenceData { .. } => SystemResult::Ok(
+                        ContractResult::from(to_binary(&ReferenceData {
+                            rate: Uint128::from(3465211050000000000000u128),
+                            last_updated_base: 100u64,
+                            last_updated_quote: 100u64,
+                        })),
+                    ),
+                    QueryMsg::EpochState { .. } => SystemResult::Ok(
+                        ContractResult::from(to_binary(&EpochStateResponse {
+                            exchange_rate: Decimal256::from_ratio(10, 3),
+                            aterra_supply: Uint256::from_str("123123123")
+                                .unwrap(),
+                        })),
+                    ),
                 }
-                QueryMsg::EpochState { .. } => {
-                    SystemResult::Ok(ContractResult::from(to_binary(&EpochStateResponse {
-                        exchange_rate: Decimal256::from_ratio(10, 3),
-                        aterra_supply: Uint256::from_str("123123123").unwrap(),
-                    })))
-                }
-            },
+            }
             _ => self.base.handle_query(request),
         }
     }

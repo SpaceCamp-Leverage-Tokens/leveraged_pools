@@ -1,8 +1,8 @@
-use std::vec::{Vec};
+use cosmwasm_std::{Addr, Uint128};
+use cw20::Cw20ReceiveMsg;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
-use cosmwasm_std::{Uint128, Addr};
-use cw20::Cw20ReceiveMsg;
+use std::vec::Vec;
 
 /**
  * Timestamp in seconds since 1970-01-01T00:00:00Z
@@ -46,29 +46,29 @@ pub enum ExecuteMsg {
     Receive(Cw20ReceiveMsg),
     WithdrawLiquidity { share_of_pool: Uint128 },
     BurnLeveragedAsset { share_of_pool: Uint128 },
-    SetDailyLeverageReference { },
+    SetDailyLeverageReference {},
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum Cw20HookMsg {
     /// Sell a given amount of asset
-    ProvideLiquidity { },
+    ProvideLiquidity {},
 
     /**
      * Absorb a CW20 and open a leveraged position
      */
-    MintLeveragedPosition { },
+    MintLeveragedPosition {},
 }
 
 pub struct TryMint {
     pub sender: Addr,
-    pub amount: Uint128
+    pub amount: Uint128,
 }
 
 pub struct TryBurn {
     pub sender: Addr,
-    pub pool_share: Uint128
+    pub pool_share: Uint128,
 }
 
 /**
@@ -88,7 +88,7 @@ pub struct MinterPosition {
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct ProvideLiquidityMsg {
-    pub sender:Addr,
+    pub sender: Addr,
     pub amount: Uint128,
 }
 
@@ -98,16 +98,15 @@ pub struct ProviderPosition {
     pub asset_pool_total_share: Uint128,
 }
 
-
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum QueryMsg {
-    Hyperparameters { },
-    PoolState { },
-    AllPoolInfo { },
-    PriceHistory { },
+    Hyperparameters {},
+    PoolState {},
+    AllPoolInfo {},
+    PriceHistory {},
     LiquidityPosition { address: Addr },
-    LeveragedPosition { address: Addr }
+    LeveragedPosition { address: Addr },
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -175,7 +174,7 @@ pub struct PoolStateResponse {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
-pub struct PriceContext{
+pub struct PriceContext {
     pub opening_snapshot: PriceSnapshot,
     pub current_snapshot: PriceSnapshot,
 }
@@ -189,4 +188,3 @@ pub struct AllPoolInfoResponse {
     pub pool_state: PoolStateResponse,
     pub price_context: PriceContext,
 }
-

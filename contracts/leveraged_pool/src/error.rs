@@ -8,17 +8,17 @@ pub enum ContractError {
 
     #[error("Error in computing arithmetic result")]
     /* TODO This is DivideByZero and Overflow and friends */
-    ArithmeticError { },
+    ArithmeticError {},
 
     #[error("Unimplemented")]
     Unimplemented {},
 
     /* TODO This is StdError::SerializeErr */
     #[error("Unable to serialize response")]
-    SerializeErr { },
+    SerializeErr {},
 
     #[error("Received asset does not match pool denomination")]
-    WrongAssetLOL { },
+    WrongAssetLOL {},
 
     #[error("Unexpected oracle response")]
     UnexpectedOracleResponse {},
@@ -41,7 +41,9 @@ pub enum ContractError {
     #[error("Insufficient Funds")]
     InsufficientFunds {},
 
-    #[error("Action taken will lower Protocol Ratio lower than Rebalance Ratio")]
+    #[error(
+        "Action taken will lower Protocol Ratio lower than Rebalance Ratio"
+    )]
     InvalidPoolState {},
 
     #[error("Insufficient Funds")]

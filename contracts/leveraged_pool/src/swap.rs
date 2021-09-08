@@ -1,10 +1,12 @@
-use cosmwasm_std::{Env, Addr, to_binary, QueryRequest, WasmQuery, StdResult, StdError};
-use cosmwasm_std::{Uint128, QuerierWrapper};
+use cosmwasm_std::{
+    to_binary, Addr, Env, QueryRequest, StdError, StdResult, WasmQuery,
+};
+use cosmwasm_std::{QuerierWrapper, Uint128};
+use leveraged_pools::pool::TSPricePoint;
+use terraswap::asset::AssetInfo;
 use terraswap::pair::{
-    QueryMsg as TerraSwapPairQueryMsg,
-    PoolResponse as TerraSwapPoolResponse };
-use terraswap::asset::{AssetInfo};
-use leveraged_pools::pool::{TSPricePoint};
+    PoolResponse as TerraSwapPoolResponse, QueryMsg as TerraSwapPairQueryMsg,
+};
 
 /**
  * TerraSwap liason for querying and eventually swapping
@@ -23,12 +25,17 @@ impl TSLiason {
     }
 
     /* Query given a single TS pool for current price */
-    pub fn fetch_ts_price(&self, env: &Env, querier: QuerierWrapper) -> StdResult<TSPricePoint> {
+    pub fn fetch_ts_price(
+        &self,
+        env: &Env,
+        querier: QuerierWrapper,
+    ) -> StdResult<TSPricePoint> {
         /* Query TS contract */
-        let res: TerraSwapPoolResponse = querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: (*self.pool.as_str()).to_string(),
-            msg: to_binary(&TerraSwapPairQueryMsg::Pool { })?,
-        }))?;
+        let res: TerraSwapPoolResponse =
+            querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+                contract_addr: (*self.pool.as_str()).to_string(),
+                msg: to_binary(&TerraSwapPairQueryMsg::Pool {})?,
+            }))?;
 
         /* Should always return 2 assets */
         if res.assets.len() != 2 {
@@ -40,18 +47,20 @@ impl TSLiason {
         let mut capital_amt = 0u128;
         for a in res.assets {
             match a.info {
-                AssetInfo::Token { contract_addr } =>
+                AssetInfo::Token { contract_addr } => {
                     if contract_addr == self.leveraged_asset.as_str() {
                         asset_amt = a.amount.u128();
                     } else {
                         capital_amt = a.amount.u128();
                     }
-                AssetInfo::NativeToken { denom } =>
+                }
+                AssetInfo::NativeToken { denom } => {
                     if denom == self.leveraged_asset.as_str() {
                         asset_amt = a.amount.u128();
                     } else {
                         capital_amt = a.amount.u128();
                     }
+                }
             }
         }
 
@@ -70,4 +79,3 @@ impl TSLiason {
         Ok(current_price)
     }
 }
-
