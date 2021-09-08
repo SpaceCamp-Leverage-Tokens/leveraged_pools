@@ -1,4 +1,5 @@
 use crate::contract::{execute, instantiate, query};
+use crate::error::ContractError;
 use crate::testing::mock_querier::{mock_dependencies, OwnedMockDeps};
 use cosmwasm_std::testing::{mock_env, mock_info};
 use cosmwasm_std::{
@@ -95,6 +96,66 @@ fn proper_init() {
     );
     /* Verify genesis snapshot price is correct */
     assert_eq!(genesis_snapshot.asset_price.u128() / 1_000_000, 1_000);
+}
+
+#[test]
+fn proper_mint() {
+    let mut deps = mock_dependencies(&[]);
+
+    /* mTSLA pool init */
+    mtsla_ust_2x_init(&mut deps);
+
+    /* Provide 100 mTSLA as liquidity */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "provider".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::ProvideLiquidity {}).unwrap(),
+    });
+    execute(deps.as_mut(), mock_env(), mock_info("mTSLA", &[]), msg).unwrap();
+
+    /*
+     * Attempt to mint a leveraged position with 100mTSLA which should fail as
+     * protocol-ratio would fall below the minimum
+     */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "minter".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::MintLeveragedPosition {}).unwrap(),
+    });
+    match execute(deps.as_mut(), mock_env(), mock_info("mTSLA", &[]), msg) {
+        Err(e) => match e {
+            ContractError::WouldViolatePoolHealth {} => {}
+            _ => panic!("Expected WouldViolatePoolHealth but found {}", e),
+        },
+        _ => panic!("Pool did not enforce PR while minting"),
+    }
+
+    /*
+     * Attempt to mint a leveraged position which would make a PR of 2.499999
+     * and therefore should be rejected too
+     */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "minter".to_string(),
+        amount: Uint128::new(66_666_667),
+        msg: to_binary(&Cw20HookMsg::MintLeveragedPosition {}).unwrap(),
+    });
+    match execute(deps.as_mut(), mock_env(), mock_info("mTSLA", &[]), msg) {
+        Err(e) => match e {
+            ContractError::WouldViolatePoolHealth {} => {}
+            _ => panic!("Expected WouldViolatePoolHealth but found {}", e),
+        },
+        _ => panic!("Pool did not enforce PR while minting"),
+    }
+
+    /*
+     * Finally mint a position which creates a legal PR of 2.5000001
+     */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "minter".to_string(),
+        amount: Uint128::new(66_666_666),
+        msg: to_binary(&Cw20HookMsg::MintLeveragedPosition {}).unwrap(),
+    });
+    execute(deps.as_mut(), mock_env(), mock_info("mTSLA", &[]), msg).unwrap();
 }
 
 #[test]
