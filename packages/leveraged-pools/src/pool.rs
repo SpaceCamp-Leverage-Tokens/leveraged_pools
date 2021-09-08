@@ -4,6 +4,8 @@ use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 use std::vec::Vec;
 
+pub const PRECISION: u128 = 1_000_000;
+
 /**
  * Timestamp in seconds since 1970-01-01T00:00:00Z
  */

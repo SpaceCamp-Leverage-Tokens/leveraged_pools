@@ -13,7 +13,7 @@ use cosmwasm_std::{
 use cw_storage_plus::{Item, Map};
 use leveraged_pools::pool::{
     InstantiateMsg, MinterPosition, PriceContext, PriceSnapshot,
-    ProviderPosition,
+    ProviderPosition, PRECISION,
 };
 use serde::{Deserialize, Serialize};
 use std::vec::Vec;
@@ -191,6 +191,8 @@ pub fn calculate_pr(
     total_leveraged_assets: Uint128,
 ) -> Uint128 {
     total_assets
+        .checked_mul(Uint128::from(PRECISION))
+        .unwrap_or_default()
         .checked_div(total_leveraged_assets)
         .unwrap_or_default()
 }

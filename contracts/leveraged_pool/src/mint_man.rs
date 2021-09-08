@@ -25,16 +25,23 @@ pub fn execute_mint_leveraged(
     let state = leverage_man::query_pool_state(&deps.as_ref())?;
     let hyper_p = leverage_man::query_hyperparameters(&deps.as_ref())?;
 
-    let unleveraged_assets = proposed_mint.amount;
-    let leveraged_assets = leverage_man::leveraged_equivalence(
+    /* The unleveraged funds that were sent in the mint tx */
+    let sent_unleveraged_assets = proposed_mint.amount;
+
+    /* How many leveraged assets could these unleveraged assets buy */
+    let new_leveraged_assets = leverage_man::leveraged_equivalence(
         &deps.as_ref(),
         env,
-        unleveraged_assets,
+        sent_unleveraged_assets,
     )?;
 
+    /*
+     * For deposits, we include the sent funds in the PR calculation
+     * (AIR + sent_funds) / (leveraged_assets + equivalence(sent_funds)) >= PR
+     */
     if leverage_man::calculate_pr(
-        state.assets_in_reserve,
-        state.total_leveraged_assets + leveraged_assets,
+        state.assets_in_reserve + sent_unleveraged_assets,
+        state.total_leveraged_pool_share + new_leveraged_assets,
     ) < hyper_p.minimum_protocol_ratio
     {
         return Err(ContractError::WouldViolatePoolHealth {});
@@ -43,8 +50,8 @@ pub fn execute_mint_leveraged(
     leverage_man::create_leveraged_position(
         deps.storage,
         &proposed_mint.sender,
-        leveraged_assets,
-        unleveraged_assets,
+        new_leveraged_assets,
+        sent_unleveraged_assets,
     )
 }
 
