@@ -49,12 +49,21 @@ pub fn execute_mint_leveraged(
         return Err(ContractError::WouldViolatePoolHealth {});
     }
 
-    leverage_man::create_leveraged_position(
+    let ret = leverage_man::create_leveraged_position(
         deps.storage,
         &proposed_mint.sender,
         new_leveraged_assets,
         sent_unleveraged_assets,
-    )
+    );
+
+    leverage_man::check_reset_leverage(
+        deps.storage,
+        deps.api,
+        deps.querier,
+        env,
+    )?;
+
+    ret
 }
 
 /**
@@ -126,6 +135,13 @@ pub fn execute_burn_leveraged(
             amount: proposed_redeem_units,
         })?,
     });
+
+    leverage_man::check_reset_leverage(
+        deps.storage,
+        deps.api,
+        deps.querier,
+        env,
+    )?;
 
     Ok(Response::new().add_message(burn_msg))
 }

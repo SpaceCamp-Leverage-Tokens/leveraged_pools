@@ -13,7 +13,7 @@ use leveraged_pools::pool::{
 };
 
 /* Create a 2x pool from a CW20
- * + TS liquidity at 100:1 mTSLA:UST
+ * + TS liquidity at 1000:1 mTSLA:UST
  * + Minimum protocol ratio 2.5
  * + Rebalance ratio 2.0
  * + 0.5% premium on minting 2x assets
@@ -332,4 +332,141 @@ fn proper_lp() {
     let pool_state: PoolStateResponse = from_binary(&res).unwrap();
     assert_eq!(pool_state.assets_in_reserve, Uint128::new(100_000_000));
     assert_eq!(pool_state.total_asset_pool_share, Uint128::new(100_000_000));
+}
+
+#[test]
+fn price_history() {
+    let mut deps = mock_dependencies(&[]);
+    let mut env = mock_env();
+
+    /* mTSLA pool init */
+    mtsla_ust_2x_init(&mut deps);
+
+    /* Triggering event for price history update */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "provider".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::ProvideLiquidity {}).unwrap(),
+    });
+    execute(deps.as_mut(), env.clone(), mock_info("mTSLA", &[]), msg).unwrap();
+
+    /* Check price history */
+    let bin =
+        &query(deps.as_ref(), env.clone(), QueryMsg::PriceHistory {}).unwrap();
+    let res: PriceHistoryResponse = from_binary(&bin).unwrap();
+    let history = res.price_history;
+
+    /* Only history is the opening snapshot */
+    assert_eq!(history.len(), 1);
+
+    /* Check that we don't update too frequently */
+    env.block.time = env.block.time.plus_seconds(1);
+
+    /* Triggering event for price history update */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "provider".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::ProvideLiquidity {}).unwrap(),
+    });
+    execute(deps.as_mut(), env.clone(), mock_info("mTSLA", &[]), msg).unwrap();
+
+    /* Check price history */
+    let bin =
+        &query(deps.as_ref(), env.clone(), QueryMsg::PriceHistory {}).unwrap();
+    let res: PriceHistoryResponse = from_binary(&bin).unwrap();
+    let history = res.price_history;
+
+    /* Still only 1 price point - not enough time has elapsed */
+    assert_eq!(history.len(), 1);
+
+    /* Advance 15 minutes s/t price should be updated */
+    env.block.time = env.block.time.plus_seconds(15 * 60);
+
+    /* Triggering event for price history update */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "provider".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::ProvideLiquidity {}).unwrap(),
+    });
+    execute(deps.as_mut(), env.clone(), mock_info("mTSLA", &[]), msg).unwrap();
+
+    /* Check price history */
+    let bin =
+        &query(deps.as_ref(), env.clone(), QueryMsg::PriceHistory {}).unwrap();
+    let res: PriceHistoryResponse = from_binary(&bin).unwrap();
+    let history = res.price_history;
+
+    /* 2 price points after sufficent time elapsed */
+    assert_eq!(history.len(), 2);
+
+    /* Price should not have changed */
+    assert_eq!(history[0].asset_price, Uint128::new(1_000_000_000));
+    assert_eq!(history[0].leveraged_price, Uint128::new(1_000_000_000));
+    assert_eq!(history[1].asset_price, Uint128::new(1_000_000_000));
+    assert_eq!(history[1].leveraged_price, Uint128::new(1_000_000_000));
+}
+
+#[test]
+fn reset_leverage() {
+    let mut deps = mock_dependencies(&[]);
+    let mut env = mock_env();
+
+    /* mTSLA pool init */
+    mtsla_ust_2x_init(&mut deps);
+
+    /* Triggering event for leverage reset */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "provider".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::ProvideLiquidity {}).unwrap(),
+    });
+    execute(deps.as_mut(), env.clone(), mock_info("mTSLA", &[]), msg).unwrap();
+
+    let res = query(deps.as_ref(), mock_env(), QueryMsg::PoolState {}).unwrap();
+    let pool_state: PoolStateResponse = from_binary(&res).unwrap();
+    assert_eq!(
+        pool_state.opening_snapshot.timestamp,
+        env.block.time.seconds()
+    );
+
+    /* Ensure we do not set leverage too often */
+    env.block.time = env.block.time.plus_seconds(1);
+
+    /* Triggering event for leverage reset */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "provider".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::ProvideLiquidity {}).unwrap(),
+    });
+    execute(deps.as_mut(), env.clone(), mock_info("mTSLA", &[]), msg).unwrap();
+
+    /* Query pool state for last leverage reset time */
+    let res = query(deps.as_ref(), mock_env(), QueryMsg::PoolState {}).unwrap();
+    let pool_state: PoolStateResponse = from_binary(&res).unwrap();
+
+    /* Should not update - too soon */
+    assert_ne!(
+        pool_state.opening_snapshot.timestamp,
+        env.block.time.seconds()
+    );
+
+    /* Wait a day and make sure leverage has reset propery */
+    env.block.time = env.block.time.plus_seconds(24 * 60 * 60);
+
+    /* Triggering event for leverage reset */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "provider".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::ProvideLiquidity {}).unwrap(),
+    });
+    execute(deps.as_mut(), env.clone(), mock_info("mTSLA", &[]), msg).unwrap();
+
+    let res = query(deps.as_ref(), mock_env(), QueryMsg::PoolState {}).unwrap();
+    let pool_state: PoolStateResponse = from_binary(&res).unwrap();
+
+    /* Should update - leverage has expired */
+    assert_eq!(
+        pool_state.opening_snapshot.timestamp,
+        env.block.time.seconds()
+    );
 }

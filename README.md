@@ -1,21 +1,25 @@
 Leveraged Tokens on Terra network
 =================================
 
-Concept for zero-sum leveraged trading pools on Terra network. Created for
-Terra's Spacecamp hackathon.
+Concept for zero-sum leveraged trading pools on Terra network. Allows traders
+to swap leveraged Cw20-stablecoin pairs like mTSLA-UST 3x; zero-sum allows for
+arbitrarily-high leverage on stablecoin-stablecoin pairs like UST-KRT.
+
+Created for Terra's Spacecamp hackathon; our page [is
+here](https://eventornado.com/submission/leveraged-assets-via-terraswap).
 
 Contracts
 ---------
 
-This concept relies on three contracts; the source code is in the
-[`contracts/`](contracts/) directory; each contract has a README roughly
-explaining its contribution to the leveraged token system.
+The source code for each contract is in the [`contracts/`](contracts/)
+directory.
 
 | Name                                               | Description                                  |
 | -------------------------------------------------- | -------------------------------------------- |
 | [`leveraged_pool`](contracts/leveraged_pool)       | Pool providing leverage on a token           |
-| [`factory`](contracts/factory)                     | Create leveraged pools
+| [`factory`](contracts/factory)                     | Create leveraged pools                       |
 | `leverage_governance`                              | WIP                                          |
+| `forex_pool`                                       | Very high-leverage & very WIP                |
 
 Contracts created from this repository are available on the bombay-10 test
 network at the below addresses:

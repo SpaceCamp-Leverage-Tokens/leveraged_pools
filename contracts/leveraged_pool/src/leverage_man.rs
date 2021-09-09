@@ -72,6 +72,7 @@ pub fn init<'a>(
     /* Initialize pool state */
     let init_state = PoolState {
         latest_reset_snapshot: genesis_snapshot,
+        latest_historic_snapshot: genesis_snapshot,
         assets_in_reserve: Uint128::zero(),
         total_leveraged_assets: Uint128::zero(),
         total_asset_pool_share: Uint128::zero(),
@@ -165,7 +166,8 @@ pub fn leveraged_equivalence(
     env: &Env,
     asset_count: Uint128,
 ) -> Result<Uint128, ContractError> {
-    let curr = get_price_context(deps, env, deps.querier)?.current_snapshot;
+    let curr = get_price_context(deps.storage, deps.api, deps.querier, env)?
+        .current_snapshot;
     Ok(multiply_ratio(
         asset_count,
         curr.asset_price,
@@ -182,7 +184,8 @@ pub fn unleveraged_equivalence(
     env: &Env,
     asset_count: Uint128,
 ) -> Result<Uint128, ContractError> {
-    let curr = get_price_context(deps, env, deps.querier)?.current_snapshot;
+    let curr = get_price_context(deps.storage, deps.api, deps.querier, env)?
+        .current_snapshot;
     Ok(multiply_ratio(
         asset_count,
         curr.leveraged_price,
@@ -191,8 +194,8 @@ pub fn unleveraged_equivalence(
 }
 
 /**
- * Compute protocol ratio given total number of assets and the number of minted
- * positions
+ * Only compute protocol ratio given total number of assets and the number of minted
+ * positions.
  *
  * (Value of AIR) / (Total Minted Value)
  *
@@ -205,7 +208,8 @@ pub fn calculate_pr(
     total_leveraged_assets: Uint128,
 ) -> Result<Uint128, ContractError> {
     let curr_snapshot: PriceSnapshot =
-        get_price_context(deps, env, deps.querier)?.current_snapshot;
+        get_price_context(deps.storage, deps.api, deps.querier, env)?
+            .current_snapshot;
 
     let total_minted_value = total_leveraged_assets
         .checked_mul(curr_snapshot.leveraged_price)
@@ -220,6 +224,35 @@ pub fn calculate_pr(
         Uint128::from(PRECISION),
         total_minted_value,
     )?)
+}
+
+pub fn check_reset_leverage(
+    storage: &mut dyn Storage,
+    api: &dyn Api,
+    querier: QuerierWrapper,
+    env: &Env,
+) -> Result<(), ContractError> {
+    /* TODO I can reduce the number of loads in this call stack */
+    let mut state = POOLSTATE.load(storage)?;
+
+    let price_context = get_price_context(storage, api, querier, env)?;
+
+    /* Update historic price data */
+    if price_timestamp_is_expired(&state.latest_historic_snapshot, env) {
+        let mut prices = PRICE_DATA.load(storage)?;
+        push_drain(&mut prices, price_context.current_snapshot, PRICE_DATA_N);
+        state.latest_historic_snapshot = price_context.current_snapshot;
+        PRICE_DATA.save(storage, &prices)?;
+        POOLSTATE.save(storage, &state)?;
+    }
+
+    /* Reset leverage */
+    if leverage_is_expired(&price_context.opening_snapshot, env) {
+        state.latest_reset_snapshot = price_context.current_snapshot;
+        POOLSTATE.save(storage, &state)?;
+    }
+
+    Ok(())
 }
 
 /**
@@ -243,7 +276,7 @@ pub fn query_pr(deps: &Deps, env: &Env) -> Result<Uint128, ContractError> {
     let state = POOLSTATE.load(deps.storage)?;
 
     calculate_pr(
-        &deps,
+        deps,
         &env,
         state.assets_in_reserve,
         state.total_leveraged_assets,
@@ -386,16 +419,17 @@ pub fn get_liquidity_position(
  * with leveraged price
  */
 pub fn get_price_context(
-    deps: &Deps,
-    env: &Env,
+    storage: &dyn Storage,
+    api: &dyn Api,
     querier: QuerierWrapper,
+    env: &Env,
 ) -> StdResult<PriceContext> {
-    let hyper_p = HYPERPARAMETERS.load(deps.storage)?;
-    let pool_state = POOLSTATE.load(deps.storage)?;
+    let hyper_p = HYPERPARAMETERS.load(storage)?;
+    let pool_state = POOLSTATE.load(storage)?;
 
     let liason: TSLiason = TSLiason::new_from_pair(
-        &deps.api.addr_humanize(&hyper_p.terraswap_pair_addr)?,
-        &deps.api.addr_humanize(&hyper_p.leveraged_asset_addr)?,
+        &api.addr_humanize(&hyper_p.terraswap_pair_addr)?,
+        &api.addr_humanize(&hyper_p.leveraged_asset_addr)?,
     );
     let opening_asset_price = pool_state.latest_reset_snapshot.asset_price;
     let opening_leveraged_price =
@@ -491,41 +525,40 @@ fn hyperparameters_is_valid(hyperparms: &Hyperparameters) -> bool {
     return true;
 }
 
-/*
- * Snapshot of the price right at this exact second
- * TODO write a similar fn but have it update price history w/ DepsMut
- * TODO actually write this fn O(#￣▽￣)
- */
-/* fn bleeding_edge_snapshot(deps: &Deps) -> StdResult<PriceSnapshot> {
-    Err(StdError::GenericErr { msg: String::from("Unimplemented") })
-} */
-
 /**
  * Push an element onto the end of a vector and drop some of the front s/t
  * there are at most `usize` elements in the vector
  *
- * TODO Use O(#￣▽￣)
+ * O(#￣▽￣)
  */
-#[allow(dead_code)]
 fn push_drain<T>(v: &mut Vec<T>, append: T, max: usize) {
     /* Stick onto the end of Vec */
     v.push(append);
 
-    if v.len() > max {
+    if v.len() >= max {
         /* Pop old data off the front */
-        v.drain(0..v.len() - max - 1);
+        v.drain(0..v.len() - max);
     }
 }
 
 /**
- * TODO Use O(#￣▽￣)
+ * O(#￣▽￣)
  */
-#[allow(dead_code)]
-fn price_timestamp_expired(snapshot: &PriceSnapshot, env: &Env) -> bool {
+fn price_timestamp_is_expired(snapshot: &PriceSnapshot, env: &Env) -> bool {
     let currently = env.block.time.seconds();
     let timestamp = snapshot.timestamp;
 
-    currently > timestamp && currently - timestamp > PRICE_DATA_EXPIRY
+    currently > timestamp && currently - timestamp >= PRICE_DATA_EXPIRY
+}
+
+/**
+ * O(#￣▽￣)
+ */
+fn leverage_is_expired(open: &PriceSnapshot, env: &Env) -> bool {
+    let currently = env.block.time.seconds();
+    let timestamp = open.timestamp;
+
+    currently > timestamp && currently - timestamp >= LEVERAGE_EXPIRY
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq)]
@@ -543,21 +576,18 @@ pub struct Hyperparameters {
  * Fetch a new price about every 15 minutes
  * TODO Use
  */
-#[allow(dead_code)]
 const PRICE_DATA_EXPIRY: u64 = 15 * 60;
 
 /**
  * Reset leverage after 24 hours
  * TODO Use
  */
-#[allow(dead_code)]
 const LEVERAGE_EXPIRY: u64 = 24 * 60 * 60;
 
 /**
  * Keep 90 days of price data at the 15-minute resolution
  * TODO Use
  */
-#[allow(dead_code)]
 const PRICE_DATA_N: usize = 90 * 24 * 4;
 
 /**
@@ -599,6 +629,11 @@ pub struct PoolState {
     pub latest_reset_snapshot: PriceSnapshot,
 
     /**
+     * Most recent historic snapshot
+     */
+    pub latest_historic_snapshot: PriceSnapshot,
+
+    /**
      * Backing assets provided by both minters and providers
      */
     pub assets_in_reserve: Uint128,
@@ -625,6 +660,20 @@ pub struct PoolState {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn push_drain_max() {
+        let mut v = vec![0];
+        push_drain(&mut v, 10, 3);
+        assert_eq!(v.len(), 2);
+        push_drain(&mut v, 11, 3);
+        assert_eq!(v.len(), 3);
+        push_drain(&mut v, 12, 3);
+        assert_eq!(v.len(), 3);
+        push_drain(&mut v, 13, 3);
+        assert_eq!(v.len(), 3);
+    }
+
     #[test]
     fn proper_percent_increase() {
         // Testing 50% increase with 2x leverage

@@ -25,7 +25,7 @@ pub struct ProviderPosition {
 pub fn try_execute_provide_liquidity(
     deps: DepsMut,
     _info: MessageInfo,
-    _env: &Env,
+    env: &Env,
     msg: ProvideLiquidityMsg,
 ) -> Result<Response, ContractError> {
     let mut pool_state = leverage_man::get_pool_state(&deps.as_ref())?;
@@ -46,6 +46,13 @@ pub fn try_execute_provide_liquidity(
         &new_provider_position,
     )?;
     leverage_man::update_pool_state(deps.storage, pool_state)?;
+
+    leverage_man::check_reset_leverage(
+        deps.storage,
+        deps.api,
+        deps.querier,
+        env,
+    )?;
 
     Ok(Response::new())
 }
@@ -77,8 +84,12 @@ pub fn execute_withdraw_liquidity(
         Err(ContractError::InsufficientFunds {})?;
     }
 
-    let price_context =
-        leverage_man::get_price_context(&deps.as_ref(), env, deps.querier)?;
+    let price_context = leverage_man::get_price_context(
+        deps.storage,
+        deps.api,
+        deps.querier,
+        env,
+    )?;
 
     let total_asset_value = pool_state
         .assets_in_reserve
@@ -133,6 +144,13 @@ pub fn execute_withdraw_liquidity(
             amount: claimed_units,
         })?,
     });
+
+    leverage_man::check_reset_leverage(
+        deps.storage,
+        deps.api,
+        deps.querier,
+        env,
+    )?;
 
     Ok(Response::new().add_message(request_tokens_msg))
 }

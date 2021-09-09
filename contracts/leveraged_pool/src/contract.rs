@@ -4,7 +4,7 @@ use crate::{leverage_man, liquid_man, mint_man};
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo,
-    QuerierWrapper, Response, StdError, StdResult, Uint128,
+    Response, StdError, StdResult, Uint128,
 };
 use cw20::Cw20ReceiveMsg;
 use leveraged_pools::pool::{
@@ -241,12 +241,16 @@ fn query_pool_state(deps: Deps) -> StdResult<PoolStateResponse> {
 fn query_all_pool_info(
     deps: Deps,
     env: &Env,
-    querier: QuerierWrapper,
 ) -> StdResult<AllPoolInfoResponse> {
     Ok(AllPoolInfoResponse {
         hyperparameters: query_hyperparameters(deps)?,
         pool_state: query_pool_state(deps)?,
-        price_context: leverage_man::get_price_context(&deps, &env, querier)?,
+        price_context: leverage_man::get_price_context(
+            deps.storage,
+            deps.api,
+            deps.querier,
+            env,
+        )?,
     })
 }
 
@@ -273,7 +277,7 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::PoolState {} => to_binary(&query_pool_state(deps)?),
         QueryMsg::AllPoolInfo {} => {
-            to_binary(&query_all_pool_info(deps, &env, deps.querier)?)
+            to_binary(&query_all_pool_info(deps, &env)?)
         }
         QueryMsg::PriceHistory {} => to_binary(&query_price_history(deps)?),
         QueryMsg::LiquidityPosition { address } => {
