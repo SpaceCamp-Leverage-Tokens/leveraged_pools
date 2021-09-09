@@ -185,16 +185,33 @@ pub fn unleveraged_equivalence(
 /**
  * Compute protocol ratio given total number of assets and the number of minted
  * positions
+ *
+ * (Value of AIR) / (Total Minted Value)
+ *
+ * Returns a ratio precise out to 6 decimals, defined by PRECISION
  */
 pub fn calculate_pr(
+    deps: &Deps,
+    env: &Env,
     total_assets: Uint128,
     total_leveraged_assets: Uint128,
-) -> Uint128 {
-    total_assets
+) -> Result<Uint128, ContractError> {
+    let curr_snapshot: PriceSnapshot =
+        get_price_context(deps, env, deps.querier)?.current_snapshot;
+
+    let total_minted_value = total_leveraged_assets
+        .checked_mul(curr_snapshot.leveraged_price)
+        .or_else(|_| Err(ContractError::ArithmeticError {}))?;
+
+    let air_value = total_assets
+        .checked_mul(curr_snapshot.asset_price)
+        .or_else(|_| Err(ContractError::ArithmeticError {}))?;
+
+    Ok(air_value
         .checked_mul(Uint128::from(PRECISION))
-        .unwrap_or_default()
-        .checked_div(total_leveraged_assets)
-        .unwrap_or_default()
+        .or_else(|_| Err(ContractError::ArithmeticError {}))?
+        .checked_div(total_minted_value)
+        .or_else(|_| Err(ContractError::NoMintedValue {}))?)
 }
 
 /**

@@ -13,6 +13,9 @@ pub enum ContractError {
     #[error("Unimplemented")]
     Unimplemented {},
 
+    #[error("Total minted value is zero")]
+    NoMintedValue {},
+
     /* TODO This is StdError::SerializeErr */
     #[error("Unable to serialize response")]
     SerializeErr {},

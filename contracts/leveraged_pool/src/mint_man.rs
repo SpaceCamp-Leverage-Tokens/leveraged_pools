@@ -40,9 +40,11 @@ pub fn execute_mint_leveraged(
      * (AIR + sent_funds) / (leveraged_assets + equivalence(sent_funds)) >= PR
      */
     if leverage_man::calculate_pr(
+        &deps.as_ref(),
+        env,
         state.assets_in_reserve + sent_unleveraged_assets,
         state.total_leveraged_pool_share + new_leveraged_assets,
-    ) < hyper_p.minimum_protocol_ratio
+    )? < hyper_p.minimum_protocol_ratio
     {
         return Err(ContractError::WouldViolatePoolHealth {});
     }
@@ -91,9 +93,11 @@ pub fn execute_burn_leveraged(
     )?;
 
     if leverage_man::calculate_pr(
+        &deps.as_ref(),
+        env,
         state.assets_in_reserve - proposed_redeem_units,
         state.total_leveraged_pool_share - proposed_burn_units,
-    ) < hyper_p.minimum_protocol_ratio
+    )? < hyper_p.minimum_protocol_ratio
     {
         return Err(ContractError::WouldViolatePoolHealth {});
     }
