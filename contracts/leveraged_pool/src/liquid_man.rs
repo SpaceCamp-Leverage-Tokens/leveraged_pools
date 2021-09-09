@@ -31,7 +31,6 @@ pub fn try_execute_provide_liquidity(
     let mut pool_state = leverage_man::get_pool_state(&deps.as_ref())?;
     let provider_position =
         leverage_man::get_liquidity_position(&deps.as_ref(), &msg.sender)?;
-    // let price_context = leverage_man::get_price_context(&deps.as_ref(), env, deps.querier)?;
 
     let liquidity_value_added = msg.amount;
     let new_provider_position =
@@ -69,6 +68,15 @@ pub fn execute_withdraw_liquidity(
     }
 
     let mut pool_state = leverage_man::get_pool_state(&deps.as_ref())?;
+
+    if !leverage_man::addr_has_adequate_lp_share(
+        &deps.as_ref(),
+        &info.sender,
+        requested_share_of_pool,
+    ) {
+        Err(ContractError::InsufficientFunds {})?;
+    }
+
     let price_context =
         leverage_man::get_price_context(&deps.as_ref(), env, deps.querier)?;
 
@@ -86,34 +94,25 @@ pub fn execute_withdraw_liquidity(
     let percent_pool_requested = Uint128::new(1_000_000)
         .saturating_mul(requested_share_of_pool)
         / pool_state.total_asset_pool_share;
-    let tokens_requested = available_pool_tokens
+    let claimed_units = available_pool_tokens
         .saturating_mul(percent_pool_requested)
         / Uint128::new(1_000_000);
 
-    let new_assets_in_reserve = pool_state.assets_in_reserve - tokens_requested;
-
-    // If nothing minted -- user can withdraw any amount
-    if total_minted_value > Uint128::new(0) {
-        // Calculating next pool state validity
-        let new_total_asset_value = new_assets_in_reserve
-            .saturating_mul(price_context.current_snapshot.asset_price);
-        let new_total_liq_pool_value =
-            new_total_asset_value - total_minted_value;
-        let new_protocol_ratio = Uint128::new(1_000_000)
-            .saturating_mul(new_total_liq_pool_value)
-            / total_minted_value;
-
-        // Ensure that new protocol ratio is above the rebalance ratio
-        if new_protocol_ratio < hyper_p.rebalance_ratio {
-            return Err(ContractError::InvalidPoolState {});
-        }
+    if pool_state.total_leveraged_pool_share > Uint128::zero()
+        && leverage_man::calculate_pr(
+            &deps.as_ref(),
+            env,
+            pool_state.assets_in_reserve - claimed_units,
+            pool_state.total_leveraged_pool_share,
+        )? < hyper_p.minimum_protocol_ratio
+    {
+        return Err(ContractError::WouldViolatePoolHealth {});
     }
 
     let new_provider_position =
         provider_position.asset_pool_partial_share - requested_share_of_pool;
-    pool_state.assets_in_reserve = new_assets_in_reserve;
-    pool_state.total_asset_pool_share =
-        pool_state.total_asset_pool_share - requested_share_of_pool;
+    pool_state.assets_in_reserve -= claimed_units;
+    pool_state.total_asset_pool_share -= requested_share_of_pool;
 
     // Update Pool State
     leverage_man::update_pool_state(deps.storage, pool_state)?;
@@ -123,10 +122,6 @@ pub fn execute_withdraw_liquidity(
         &new_provider_position,
     )?;
 
-    // if requested_share_of_pool < provider_position.asset_pool_partial_share{
-    //     return Err(ContractError::Std(StdError::generic_err(deps.api.addr_humanize(&hyper_p.leveraged_asset_addr)?.to_string())))
-    // }
-
     let request_tokens_msg = CosmosMsg::Wasm(WasmMsg::Execute {
         contract_addr: deps
             .api
@@ -135,7 +130,7 @@ pub fn execute_withdraw_liquidity(
         funds: vec![],
         msg: to_binary(&Cw20ExecuteMsg::Transfer {
             recipient: info.sender.to_string(),
-            amount: tokens_requested,
+            amount: claimed_units,
         })?,
     });
 

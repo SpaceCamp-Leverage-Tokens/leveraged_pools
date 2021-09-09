@@ -4,14 +4,14 @@ use crate::{leverage_man, liquid_man, mint_man};
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     from_binary, to_binary, Addr, Binary, Deps, DepsMut, Env, MessageInfo,
-    QuerierWrapper, Response, StdResult, Uint128,
+    QuerierWrapper, Response, StdError, StdResult, Uint128,
 };
 use cw20::Cw20ReceiveMsg;
 use leveraged_pools::pool::{
     AllPoolInfoResponse, Cw20HookMsg, ExecuteMsg, HyperparametersResponse,
     InstantiateMsg, LeveragedPositionResponse, LiquidityPositionResponse,
-    PoolStateResponse, PriceHistoryResponse, ProvideLiquidityMsg, QueryMsg,
-    TryBurn, TryMint,
+    PoolStateResponse, PriceHistoryResponse, ProtocolRatioResponse,
+    ProvideLiquidityMsg, QueryMsg, TryBurn, TryMint,
 };
 
 /**
@@ -251,6 +251,18 @@ fn query_all_pool_info(
 }
 
 /**
+ * QueryMsg::ProtocolRatio
+ */
+fn query_pr(
+    deps: &Deps,
+    env: &Env,
+) -> Result<ProtocolRatioResponse, ContractError> {
+    Ok(ProtocolRatioResponse {
+        pr: leverage_man::query_pr(&deps, &env)?,
+    })
+}
+
+/**
  * Query entrypoint
  */
 #[cfg_attr(not(feature = "library"), entry_point)]
@@ -269,6 +281,13 @@ pub fn query(deps: Deps, env: Env, msg: QueryMsg) -> StdResult<Binary> {
         }
         QueryMsg::LeveragedPosition { address } => {
             to_binary(&query_addr_leveraged_position(deps, address)?)
+        }
+        QueryMsg::ProtocolRatio {} => {
+            to_binary(&query_pr(&deps, &env).or_else(|_|
+                    /* TODO handle contracterror -> StdResult gracefully */
+                    Err(StdError::GenericErr {
+                        msg: String::from("No minted value"),
+                    }))?)
         }
     }
 }

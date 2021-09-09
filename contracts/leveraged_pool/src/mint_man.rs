@@ -9,7 +9,7 @@ use cosmwasm_std::{
     to_binary, CosmosMsg, DepsMut, Env, MessageInfo, Response, WasmMsg,
 };
 use cw20::Cw20ExecuteMsg;
-use leveraged_pools::pool::{MinterPosition, TryBurn, TryMint};
+use leveraged_pools::pool::{multiply_ratio, MinterPosition, TryBurn, TryMint};
 
 use crate::error::ContractError;
 
@@ -83,8 +83,11 @@ pub fn execute_burn_leveraged(
         Err(ContractError::InsufficientFunds {})?;
     }
 
-    let proposed_burn_units = leverage_share
-        .multiply_ratio(proposed_share, state.total_leveraged_pool_share);
+    let proposed_burn_units = multiply_ratio(
+        leverage_share,
+        proposed_share,
+        state.total_leveraged_pool_share,
+    )?;
 
     let proposed_redeem_units = leverage_man::unleveraged_equivalence(
         &deps.as_ref(),

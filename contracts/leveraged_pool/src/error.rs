@@ -44,11 +44,6 @@ pub enum ContractError {
     #[error("Insufficient Funds")]
     InsufficientFunds {},
 
-    #[error(
-        "Action taken will lower Protocol Ratio lower than Rebalance Ratio"
-    )]
-    InvalidPoolState {},
-
     #[error("Insufficient Funds")]
     Generic {},
 }

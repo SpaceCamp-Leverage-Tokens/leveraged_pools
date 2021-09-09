@@ -53,6 +53,18 @@
     {
       "type": "object",
       "required": [
+        "protocol_ratio"
+      ],
+      "properties": {
+        "protocol_ratio": {
+          "type": "object"
+        }
+      },
+      "additionalProperties": false
+    },
+    {
+      "type": "object",
+      "required": [
         "liquidity_position"
       ],
       "properties": {

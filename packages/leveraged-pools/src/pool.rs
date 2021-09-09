@@ -1,7 +1,8 @@
-use cosmwasm_std::{Addr, Uint128};
+use cosmwasm_std::{Addr, StdResult, Uint128, Uint256};
 use cw20::Cw20ReceiveMsg;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::convert::TryFrom;
 use std::vec::Vec;
 
 pub const PRECISION: u128 = 1_000_000;
@@ -107,6 +108,7 @@ pub enum QueryMsg {
     PoolState {},
     AllPoolInfo {},
     PriceHistory {},
+    ProtocolRatio {},
     LiquidityPosition { address: Addr },
     LeveragedPosition { address: Addr },
 }
@@ -124,6 +126,11 @@ pub struct LiquidityPositionResponse {
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 pub struct LeveragedPositionResponse {
     pub position: MinterPosition,
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct ProtocolRatioResponse {
+    pub pr: Uint128,
 }
 
 /**
@@ -189,4 +196,22 @@ pub struct AllPoolInfoResponse {
     pub hyperparameters: HyperparametersResponse,
     pub pool_state: PoolStateResponse,
     pub price_context: PriceContext,
+}
+
+/**
+ * Non-panic version of mutliply_ratio from cosmwasm_std
+ * mul * num / denom
+ */
+pub fn multiply_ratio(mul: Uint128, num: Uint128, denom: Uint128) -> StdResult<Uint128> {
+    Ok(Uint128::try_from(
+        mul.full_mul(num).checked_div(Uint256::from(denom))?,
+    )?)
+}
+
+#[test]
+fn verify_mutiply_ratio() {
+    assert_eq!(
+        multiply_ratio(Uint128::new(10), Uint128::new(1), Uint128::new(2),).unwrap(),
+        Uint128::new(5)
+    );
 }

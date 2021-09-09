@@ -9,7 +9,7 @@ use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg};
 use leveraged_pools::pool::{
     Cw20HookMsg, ExecuteMsg, HyperparametersResponse, InstantiateMsg,
     LiquidityPositionResponse, PoolStateResponse, PriceHistoryResponse,
-    ProviderPosition, QueryMsg,
+    ProtocolRatioResponse, ProviderPosition, QueryMsg,
 };
 
 /* Create a 2x pool from a CW20
@@ -148,7 +148,7 @@ fn proper_mint() {
     }
 
     /*
-     * Finally mint a position which creates a legal PR of 2.5000001
+     * Finally mint a position which creates a legal PR of 2.500000
      */
     let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
         sender: "minter".to_string(),
@@ -156,6 +156,59 @@ fn proper_mint() {
         msg: to_binary(&Cw20HookMsg::MintLeveragedPosition {}).unwrap(),
     });
     execute(deps.as_mut(), mock_env(), mock_info("mTSLA", &[]), msg).unwrap();
+
+    /* Verify legal PR of 2.5 */
+    let bin =
+        &query(deps.as_ref(), mock_env(), QueryMsg::ProtocolRatio {}).unwrap();
+    let res: ProtocolRatioResponse = from_binary(&bin).unwrap();
+    assert_eq!(res.pr, Uint128::new(2_500_000));
+
+    /*
+     * Attempt to remove liquidity which should result in an illegal PR
+     */
+    let msg = ExecuteMsg::WithdrawLiquidity {
+        share_of_pool: Uint128::new(100_000_000),
+    };
+    match execute(deps.as_mut(), mock_env(), mock_info("provider", &[]), msg) {
+        Ok(_) => panic!("LP withdrawal was able to create unhealthy PR"),
+        Err(_) => {}
+    }
+
+    /*
+     * I PUT THE LIQUIDITY IN
+     */
+    let msg = ExecuteMsg::Receive(Cw20ReceiveMsg {
+        sender: "provider".to_string(),
+        amount: Uint128::new(100_000_000),
+        msg: to_binary(&Cw20HookMsg::ProvideLiquidity {}).unwrap(),
+    });
+    execute(deps.as_mut(), mock_env(), mock_info("mTSLA", &[]), msg).unwrap();
+
+    /*
+     * JUST TO TAKE IT BACK OUT AGAIN
+     */
+    let msg = ExecuteMsg::WithdrawLiquidity {
+        share_of_pool: Uint128::new(100_000_000),
+    };
+    execute(deps.as_mut(), mock_env(), mock_info("provider", &[]), msg)
+        .unwrap();
+
+    /* Verify legal PR of 2.5 */
+    let bin =
+        &query(deps.as_ref(), mock_env(), QueryMsg::ProtocolRatio {}).unwrap();
+    let res: ProtocolRatioResponse = from_binary(&bin).unwrap();
+    assert_eq!(res.pr, Uint128::new(2_500_000));
+
+    /*
+     * Try to create an illegal PR by taking just a little out
+     */
+    let msg = ExecuteMsg::WithdrawLiquidity {
+        share_of_pool: Uint128::new(100),
+    };
+    match execute(deps.as_mut(), mock_env(), mock_info("provider", &[]), msg) {
+        Ok(_) => panic!("LP withdrawal was able to create unhealthy PR"),
+        Err(_) => {}
+    }
 }
 
 #[test]
@@ -218,6 +271,15 @@ fn proper_lp() {
     /* Assert that we now only own half the pool */
     assert_eq!(position.asset_pool_total_share, Uint128::new(200_000_000));
     assert_eq!(position.asset_pool_partial_share, Uint128::new(100_000_000));
+
+    /* Attempt to withdraw an excessive amount of liquidity */
+    let msg = ExecuteMsg::WithdrawLiquidity {
+        share_of_pool: Uint128::new(1_000_000_000),
+    };
+    match execute(deps.as_mut(), mock_env(), mock_info("provider", &[]), msg) {
+        Ok(_) => panic!("LP was able to withdraw more than their share!"),
+        Err(_) => {}
+    }
 
     /* Attempt to withdraw our liquidity */
     let msg = ExecuteMsg::WithdrawLiquidity {

@@ -12,8 +12,8 @@ use cosmwasm_std::{
 };
 use cw_storage_plus::{Item, Map};
 use leveraged_pools::pool::{
-    InstantiateMsg, MinterPosition, PriceContext, PriceSnapshot,
-    ProviderPosition, PRECISION,
+    multiply_ratio, InstantiateMsg, MinterPosition, PriceContext,
+    PriceSnapshot, ProviderPosition, PRECISION,
 };
 use serde::{Deserialize, Serialize};
 use std::vec::Vec;
@@ -166,7 +166,11 @@ pub fn leveraged_equivalence(
     asset_count: Uint128,
 ) -> Result<Uint128, ContractError> {
     let curr = get_price_context(deps, env, deps.querier)?.current_snapshot;
-    Ok(asset_count.multiply_ratio(curr.asset_price, curr.leveraged_price))
+    Ok(multiply_ratio(
+        asset_count,
+        curr.asset_price,
+        curr.leveraged_price,
+    )?)
 }
 
 /**
@@ -179,7 +183,11 @@ pub fn unleveraged_equivalence(
     asset_count: Uint128,
 ) -> Result<Uint128, ContractError> {
     let curr = get_price_context(deps, env, deps.querier)?.current_snapshot;
-    Ok(asset_count.multiply_ratio(curr.leveraged_price, curr.asset_price))
+    Ok(multiply_ratio(
+        asset_count,
+        curr.leveraged_price,
+        curr.asset_price,
+    )?)
 }
 
 /**
@@ -207,11 +215,11 @@ pub fn calculate_pr(
         .checked_mul(curr_snapshot.asset_price)
         .or_else(|_| Err(ContractError::ArithmeticError {}))?;
 
-    Ok(air_value
-        .checked_mul(Uint128::from(PRECISION))
-        .or_else(|_| Err(ContractError::ArithmeticError {}))?
-        .checked_div(total_minted_value)
-        .or_else(|_| Err(ContractError::NoMintedValue {}))?)
+    Ok(multiply_ratio(
+        air_value,
+        Uint128::from(PRECISION),
+        total_minted_value,
+    )?)
 }
 
 /**
@@ -229,6 +237,17 @@ pub fn query_hyperparameters(deps: &Deps) -> StdResult<Hyperparameters> {
 
 pub fn query_price_history(deps: &Deps) -> Vec<PriceSnapshot> {
     price_history(deps.storage)
+}
+
+pub fn query_pr(deps: &Deps, env: &Env) -> Result<Uint128, ContractError> {
+    let state = POOLSTATE.load(deps.storage)?;
+
+    calculate_pr(
+        &deps,
+        &env,
+        state.assets_in_reserve,
+        state.total_leveraged_assets,
+    )
 }
 
 pub fn query_pool_state(deps: &Deps) -> StdResult<PoolState> {
@@ -293,7 +312,21 @@ pub fn addr_has_adequate_leveraged_share(
     check: Uint128,
 ) -> bool {
     match MINTSTATE.load(deps.storage, addr) {
-        Ok(partial) => partial > check,
+        Ok(partial) => partial >= check,
+        Err(_) => false,
+    }
+}
+
+/**
+ * Assert that `addr` has at least `check` share of LP pool
+ */
+pub fn addr_has_adequate_lp_share(
+    deps: &Deps,
+    addr: &Addr,
+    check: Uint128,
+) -> bool {
+    match LIQUIDITYSTATE.load(deps.storage, addr) {
+        Ok(partial) => partial >= check,
         Err(_) => false,
     }
 }
@@ -333,14 +366,13 @@ pub fn get_liquidity_position(
     deps: &Deps,
     addr: &Addr,
 ) -> StdResult<ProviderPosition> {
-    let mut my_partial_share = Uint128::new(0); //if no position currently open in the pool
-
-    if LIQUIDITYSTATE.has(deps.storage, addr) {
-        my_partial_share = LIQUIDITYSTATE.load(deps.storage, addr)?;
-    }
-
     let pool_state = POOLSTATE.load(deps.storage)?;
     let total_share = pool_state.total_asset_pool_share;
+
+    let my_partial_share = match LIQUIDITYSTATE.load(deps.storage, &addr) {
+        Ok(partial) => partial,
+        _ => Uint128::zero(),
+    };
 
     let my_position = ProviderPosition {
         asset_pool_partial_share: my_partial_share,
